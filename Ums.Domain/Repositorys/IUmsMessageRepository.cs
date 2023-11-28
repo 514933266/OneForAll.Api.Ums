@@ -9,9 +9,9 @@ using Ums.Domain.AggregateRoots;
 namespace Ums.Domain.Repositorys
 {
     /// <summary>
-    /// 失败消息记录
+    /// 系统消息
     /// </summary>
-    public interface IUmsFailureMessageRecordRepository : IEFCoreRepository<UmsFailureMessageRecord>
+    public interface IUmsMessageRepository : IEFCoreRepository<UmsMessage>
     {
     }
 }

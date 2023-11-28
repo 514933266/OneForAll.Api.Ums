@@ -113,7 +113,7 @@ namespace Ums.HttpService
                 {
                     Id = UserId,
                     Name = name?.Value,
-                    TenantId = TenantId
+                    SysTenantId = TenantId
                 };
             }
         }
@@ -125,13 +125,12 @@ namespace Ums.HttpService
         /// <returns></returns>
         protected HttpClient GetHttpClient(string name)
         {
+            var client = _httpClientFactory.CreateClient(name);
             if (!Token.IsNullOrEmpty())
             {
-                var client = _httpClientFactory.CreateClient(name);
                 client.DefaultRequestHeaders.Add(AUTH_KEY, Token);
-                return client;
             }
-            return null;
+            return client;
         }
     }
 }

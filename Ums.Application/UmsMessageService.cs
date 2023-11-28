@@ -12,7 +12,7 @@ using Ums.Domain.Models;
 namespace Ums.Application
 {
     /// <summary>
-    /// 
+    /// 系统通知
     /// </summary>
     public class UmsMessageService : IUmsMessageService
     {
@@ -26,9 +26,14 @@ namespace Ums.Application
             _manager = manager;
         }
 
-        public async Task<BaseErrType> SendAsync(UmsMessageForm form)
+        /// <summary>
+        /// 发送系统通知消息
+        /// </summary>
+        /// <param name="form"></param>
+        /// <returns></returns>
+        public async Task<BaseErrType> SendSystemAsync(UmsMessageForm form)
         {
-            return await _manager.SendAsync(form);
+            return await _manager.SendSystemAsync(form);
         }
     }
 }

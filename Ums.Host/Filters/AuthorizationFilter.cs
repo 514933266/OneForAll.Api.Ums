@@ -10,6 +10,8 @@ using Microsoft.AspNetCore.Mvc.Authorization;
 using OneForAll.Core;
 using OneForAll.Core.Extension;
 using Ums.HttpService.Interfaces;
+using Ums.Host.Models;
+using OneForAll.Core.Security;
 
 namespace Ums.Host.Filters
 {
@@ -18,9 +20,11 @@ namespace Ums.Host.Filters
     /// </summary>
     public class AuthorizationFilter : IAuthorizationFilter
     {
+        private readonly AuthConfig _config;
         private readonly ISysPermissionCheckHttpService _httpPermService;
-        public AuthorizationFilter(ISysPermissionCheckHttpService httpPermService)
+        public AuthorizationFilter(AuthConfig config, ISysPermissionCheckHttpService httpPermService)
         {
+            _config = config;
             _httpPermService = httpPermService;
         }
 
@@ -31,6 +35,13 @@ namespace Ums.Host.Filters
             {
                 return;
             }
+            var unChecked = context.HttpContext.Request.Headers["Unchecked"];
+            if (!unChecked.IsNull())
+            {
+                // 不检查权限
+                var signs = GetListSign();
+                if (signs.Any(w => w == unChecked.ToString())) return;
+            };
 
             var attrs = new List<object>();
             attrs.AddRange((context.ActionDescriptor as ControllerActionDescriptor).MethodInfo.GetCustomAttributes(true));
@@ -53,6 +64,19 @@ namespace Ums.Host.Filters
                     context.Result = new JsonResult(msg);
                 }
             }
+        }
+
+        // 获取签名
+        private HashSet<string> GetListSign()
+        {
+            int seed = 5;
+            var result = new HashSet<string>();
+            for (int i = 0; i < seed; i++)
+            {
+                var sign = "clientId={0}&clientSecret={1}&apiName={2}&tt={3}".Fmt(_config.ClientId, _config.ClientSecret, _config.ApiName, DateTime.Now.AddMinutes(-1).ToString("yyyyMMddhhmm")).ToMd5();
+                result.Add(sign);
+            }
+            return result;
         }
     }
 

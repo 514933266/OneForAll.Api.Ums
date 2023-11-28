@@ -85,8 +85,8 @@ namespace Ums.Host.Controllers
                 return new LoginUser()
                 {
                     Id = UserId,
-                    Name = name.Value,
-                    TenantId = TenantId
+                    Name = name?.Value,
+                    SysTenantId = TenantId
                 };
             }
         }

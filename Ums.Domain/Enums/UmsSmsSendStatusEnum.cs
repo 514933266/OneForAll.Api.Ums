@@ -7,18 +7,23 @@ using System.Threading.Tasks;
 namespace Ums.Domain.Enums
 {
     /// <summary>
-    /// 失败消息类型
+    /// 短信发送状态
     /// </summary>
-    public enum UmsFailureMessageTypeEnum
+    public enum UmsSmsSendStatusEnum
     {
         /// <summary>
-        /// 未确认发送成功
+        /// 待发送
         /// </summary>
-        UnConfirmed = 0,
+        Waiting = 0,
 
         /// <summary>
-        /// 未确认消费成功
+        /// 发送成功
         /// </summary>
-        UnAcked = 1
+        Success = 1,
+
+        /// <summary>
+        /// 异常
+        /// </summary>
+        Error = 99
     }
 }

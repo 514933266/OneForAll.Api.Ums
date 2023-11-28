@@ -17,11 +17,11 @@ namespace Ums.Public.Models
         /// <summary>
         /// 系统使用者
         /// </summary>
-        public const string ADMIN = "admin";
+        public const string ADMIN = "admin,ruler";
 
         /// <summary>
         /// 公共
         /// </summary>
-        public const string PUBLIC = "ruler,admin";
+        public const string PUBLIC = "ruler,admin,public";
     }
 }

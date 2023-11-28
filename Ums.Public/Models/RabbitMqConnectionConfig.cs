@@ -12,6 +12,11 @@ namespace Ums.Public.Models
     public class RabbitMqConnectionConfig
     {
         /// <summary>
+        /// 是否启用
+        /// </summary>
+        public bool IsEnabled { get; set; }
+
+        /// <summary>
         /// 主机
         /// </summary>
         public string HostName { get; set; } = "localhost";

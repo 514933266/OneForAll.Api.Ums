@@ -14,10 +14,9 @@ using Ums.Application.Interfaces;
 namespace Ums.Host.Controllers
 {
     /// <summary>
-    /// 系统站内信
+    /// 系统通知
     /// </summary>
     [Route("api/[controller]")]
-    //[Authorize(Roles = UserRoleType.RULER)]
     public class UmsMessagesController : BaseController
     {
         private readonly IUmsMessageService _service;
@@ -35,7 +34,7 @@ namespace Ums.Host.Controllers
         public async Task<BaseMessage> AddAsync([FromBody] UmsMessageForm form)
         {
             var msg = new BaseMessage();
-            msg.ErrType = await _service.SendAsync(form);
+            msg.ErrType = await _service.SendSystemAsync(form);
             switch (msg.ErrType)
             {
                 case BaseErrType.Success: return msg.Success("发送成功");

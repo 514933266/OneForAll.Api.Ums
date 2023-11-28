@@ -19,5 +19,30 @@ namespace Ums.HttpService.Models
         /// Api日志
         /// </summary>
         public string SysApiLog { get; set; } = "SysApiLog";
+
+        /// <summary>
+        /// 异常日志
+        /// </summary>
+        public string SysExceptionLog { get; set; } = "SysExceptionLog";
+
+        /// <summary>
+        /// 全局异常日志
+        /// </summary>
+        public string SysGlobalExceptionLog { get; set; } = "SysGlobalExceptionLog";
+
+        /// <summary>
+        /// 操作日志
+        /// </summary>
+        public string SysOperationLog { get; set; } = "SysOperationLog";
+
+        /// <summary>
+        /// 企业微信机器人
+        /// </summary>
+        public string WechatQyRobot { get; set; } = "WechatQyRobot";
+
+        /// <summary>
+        /// 微信公众号模板消息
+        /// </summary>
+        public string WechatGzhTemplate { get; set; } = "WechatGzhTemplate";
     }
 }

@@ -19,7 +19,7 @@ namespace Ums.Domain.AggregateRoots
         /// 标题
         /// </summary>
         [Required]
-        [MaxLength(100)]
+        [StringLength(100)]
         public string Title { get; set; }
 
         /// <summary>

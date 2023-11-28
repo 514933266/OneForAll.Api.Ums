@@ -9,6 +9,7 @@ namespace Ums.Host.Profiles
         public UmsMessageProfile()
         {
             CreateMap<UmsMessageForm, UmsMessage>();
+            CreateMap<UmsMessageForm, UmsMessageRecord>();
         }
     }
 }

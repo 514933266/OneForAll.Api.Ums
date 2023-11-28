@@ -10,7 +10,7 @@ namespace Ums.HttpService.Models
     /// <summary>
     /// API日志
     /// </summary>
-    public class SysApiLogForm
+    public class SysApiLogRequest
     {
         /// <summary>
         /// 租户id
@@ -126,5 +126,10 @@ namespace Ums.HttpService.Models
         [Required]
         [StringLength(20)]
         public string CreatorName { get; set; }
+
+        /// <summary>
+        /// 创建时间
+        /// </summary>
+        public DateTime CreateTime { get; set; } = DateTime.Now;
     }
 }

@@ -11,15 +11,16 @@ using Ums.Domain.Repositorys;
 namespace Ums.Repository
 {
     /// <summary>
-    /// 失败记录
+    /// 系统消息
     /// </summary>
-    public class UmsFailureMessageRecordRepository : Repository<UmsFailureMessageRecord>, IUmsFailureMessageRecordRepository
+    public class UmsMessageRepository : Repository<UmsMessage>, IUmsMessageRepository
     {
-        public UmsFailureMessageRecordRepository(DbContext context)
+        public UmsMessageRepository(DbContext context)
             : base(context)
         {
 
         }
+
+
     }
 }
-

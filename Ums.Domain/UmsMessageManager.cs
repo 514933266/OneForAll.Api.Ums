@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Azure;
 using Microsoft.AspNetCore.Http;
 using MongoDB.Driver;
 using OneForAll.Core;
@@ -26,68 +27,79 @@ namespace Ums.Domain
     /// </summary>
     public class UmsMessageManager : UmsBaseManager, IUmsMessageManager
     {
-        private readonly IMongoDatabase _mongoDb;
+        private readonly string _exchangeName = "ums.direct.exchange";
         private readonly ConnectionFactory _mqFactory;
-        private readonly IUmsFailureMessageRecordRepository _repository;
+        private readonly MongoDbConnectionConfig _mongoDbConfig;
 
+        private readonly IUmsMessageRecordRepository _repository;
+        private readonly IUmsMessageRepository _umsRepository;
+        private readonly IMongoDatabase _mongoDb;
         public UmsMessageManager(
             IMapper mapper,
             IHttpContextAccessor httpContextAccessor,
-            IUmsFailureMessageRecordRepository repository,
+            IUmsMessageRecordRepository repository,
+            IUmsMessageRepository umsRepository,
             ConnectionFactory mqFactory,
-            IMongoDatabase mongoDb) : base(mapper, httpContextAccessor)
+            MongoDbConnectionConfig mongoDbConfig,
+            IMongoDatabase mongoDb = null) : base(mapper, httpContextAccessor)
         {
             _mqFactory = mqFactory;
-            _repository = repository;
+            _mongoDbConfig = mongoDbConfig;
             _mongoDb = mongoDb;
+            _repository = repository;
+            _umsRepository = umsRepository;
         }
 
+        /// <summary>
+        /// 发送系统通知消息
+        /// </summary>
+        /// <param name="form"></param>
+        /// <returns></returns>
+        public async Task<BaseErrType> SendSystemAsync(UmsMessageForm form)
+        {
+            var data = new UmsMessageRecord()
+            {
+                MessageId = Guid.NewGuid(),
+                RequestUrl = _httpContextAccessor.HttpContext.Request.Path,
+                OriginalMessage = form.ToJson(),
+                ExChangeName = _exchangeName,
+                QueueName = UmsQueueName.System,
+                RouteKey = UmsQueueName.System
+            };
+            return await SendAsync(UmsQueueName.System, data.ToJson());
+        }
 
         /// <summary>
         /// 发送消息
         /// </summary>
-        /// <param name="form"></param>
+        /// <param name="queueName">队列名称</param>
+        /// <param name="msg">消息json</param>
         /// <returns></returns>
-        public async Task<BaseErrType> SendAsync(UmsMessageForm form)
+        private async Task<BaseErrType> SendAsync(string queueName, string msg)
         {
             using (var conn = _mqFactory.CreateConnection())
             {
-                var exchangeName = "ums.topic.exchange";
-                var msg = form.ToJson();
                 using (var channel = conn.CreateModel())
                 {
-                    channel.QueueDeclare(UmsQueueName.System, true, false, false);
-                    channel.ExchangeDeclare(exchangeName, ExchangeType.Topic, true);
-                    channel.QueueBind(UmsQueueName.System, exchangeName, UmsQueueName.System);
-
-                    channel.ConfirmSelect();
-                    channel.BasicNacks += async (e, a) =>
-                    {
-                        await _repository.AddAsync(new UmsFailureMessageRecord()
-                        {
-                            Id = Guid.NewGuid(),
-                            OriginalMessage = msg,
-                            ExChangeName = exchangeName,
-                            QueueName = UmsQueueName.System,
-                            Type = UmsFailureMessageTypeEnum.UnConfirmed
-                        });
-                    };
+                    channel.QueueDeclare(queueName, true, false, false);
+                    channel.ExchangeDeclare(_exchangeName, ExchangeType.Direct, true);
+                    channel.QueueBind(queueName, _exchangeName, queueName);
 
                     var basicProperties = channel.CreateBasicProperties();
                     basicProperties.DeliveryMode = 2;
                     byte[] body = Encoding.UTF8.GetBytes(msg);
-                    channel.BasicPublish(exchangeName, UmsQueueName.System, basicProperties, body);
+                    channel.BasicPublish(_exchangeName, UmsQueueName.System, basicProperties, body);
                 }
             }
             return BaseErrType.Success;
         }
 
         /// <summary>
-        /// 接收消息
+        /// 接收系统通知消息
         /// </summary>
         /// <param name="channel">信道</param>
         /// <returns></returns>
-        public async Task ReceiveAsync(IModel channel)
+        public async Task ReceiveSystemAsync(IModel channel)
         {
             channel.QueueDeclare(UmsQueueName.System, true, false, false);
 
@@ -95,14 +107,43 @@ namespace Ums.Domain
             consumer.Received += (model, e) =>
             {
                 var msgStr = Encoding.UTF8.GetString(e.Body.ToArray());
-                var msg = msgStr.FromJson<UmsMessageForm>();
-                var collection = _mongoDb.GetCollection<UmsMessage>("Ums_Message");
-                var exists = collection.CountDocuments(w => w.Id == msg.Id && w.ToAccountId == msg.ToAccountId) > 0;
-                if (!exists)
+                var record = msgStr.FromJson<UmsMessageRecord>();
+                var msg = record.OriginalMessage.FromJson<UmsMessageForm>();
+
+                if (_mongoDbConfig.IsEnabled)
                 {
-                    var data = _mapper.Map<UmsMessageForm, UmsMessage>(msg);
-                    collection.InsertOne(data);
+                    #region MongoDb模式
+                    var collection = _mongoDb.GetCollection<UmsMessage>(_mongoDbConfig.DatabaseName);
+                    var exists = collection.CountDocuments(w => w.Id == msg.Id && w.ToAccountId == msg.ToAccountId) > 0;
+                    if (!exists)
+                    {
+                        var data = _mapper.Map<UmsMessageForm, UmsMessage>(msg);
+                        collection.InsertOne(data);
+                        record.Result = "Success";
+                    }
+                    else
+                    {
+                        record.Result = "Fail";
+                    }
+                    #endregion
                 }
+                else
+                {
+                    #region 数据库模式
+                    var exists = _umsRepository.CountAsync(w => w.Id == msg.Id && w.ToAccountId == msg.ToAccountId).Result > 0;
+                    if (!exists)
+                    {
+                        var data = _mapper.Map<UmsMessageForm, UmsMessage>(msg);
+                        _umsRepository.AddAsync(data);
+                        record.Result = "Success";
+                    }
+                    else
+                    {
+                        record.Result = "Fail";
+                    }
+                    #endregion
+                }
+                _repository.AddAsync(record);
             };
             channel.BasicConsume(UmsQueueName.System, true, consumer);
         }

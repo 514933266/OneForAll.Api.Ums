@@ -2,6 +2,7 @@
 using Ums.HttpService.Interfaces;
 using Ums.HttpService.Models;
 using Ums.Public.Models;
+using OneForAll.Core.Extension;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -32,24 +33,16 @@ namespace Ums.HttpService
         /// </summary>
         /// <param name="entity">实体</param>
         /// <returns></returns>
-        public async Task AddAsync(SysApiLogForm entity)
+        public async Task AddAsync(SysApiLogRequest entity)
         {
-            try
-            {
-                entity.CreatorId = LoginUser.Id;
-                entity.CreatorName = LoginUser.Name;
-                entity.TenantId = LoginUser.TenantId;
+            entity.CreatorId = LoginUser.Id;
+            entity.CreatorName = LoginUser.Name;
+            entity.TenantId = LoginUser.SysTenantId;
 
-                var client = GetHttpClient(_config.SysApiLog);
-                if (client != null)
-                {
-                    var res = await client.PostAsync(client.BaseAddress, entity, new JsonMediaTypeFormatter());
-                    var b = res.Content.ReadAsStringAsync();
-                }
-            }
-            catch
+            var client = GetHttpClient(_config.SysApiLog);
+            if (client != null && client.BaseAddress != null)
             {
-
+                await client.PostAsync(client.BaseAddress, entity, new JsonMediaTypeFormatter());
             }
         }
     }

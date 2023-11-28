@@ -15,17 +15,17 @@ namespace Ums.Domain.Interfaces
     public interface IUmsMessageManager
     {
         /// <summary>
-        /// 发送消息
+        /// 发送系统通知消息
         /// </summary>
         /// <param name="form"></param>
         /// <returns></returns>
-        Task<BaseErrType> SendAsync(UmsMessageForm form);
+        Task<BaseErrType> SendSystemAsync(UmsMessageForm form);
 
         /// <summary>
-        /// 接收消息
+        /// 接收系统通知消息
         /// </summary>
         /// <param name="channel">信道</param>
         /// <returns></returns>
-        Task ReceiveAsync(IModel channel);
+        Task ReceiveSystemAsync(IModel channel);
     }
 }

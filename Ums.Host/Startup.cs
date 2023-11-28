@@ -25,6 +25,7 @@ using Ums.Public.Models;
 using Ums.HttpService.Models;
 using OneForAll.Core.Upload;
 using MongoDB.Driver;
+using Ums.Host.Providers;
 
 namespace Ums.Host
 {
@@ -55,11 +56,10 @@ namespace Ums.Host
             var corsConfig = new CorsConfig();
             Configuration.GetSection(CORS).Bind(corsConfig);
             services.AddCors(option => option.AddPolicy(CORS, policy => policy
-                .WithOrigins(corsConfig.Origins)
-                .AllowAnyHeader()
-                .AllowAnyMethod()
-                .AllowCredentials()
-            ));
+                    .AllowAnyOrigin()
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                ));
 
             #endregion
 
@@ -72,8 +72,8 @@ namespace Ums.Host
                     c.SwaggerDoc(version, new OpenApiInfo
                     {
                         Version = version,
-                        Title = $"OA服务接口文档 {version}",
-                        Description = $"OneForAll OA Web API {version}"
+                        Title = $"消息服务接口文档 {version}",
+                        Description = $"OneForAll UMS Web API {version}"
                     });
                 });
 
@@ -106,9 +106,13 @@ namespace Ums.Host
                 options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
             });
 
+            services.AddSingleton<IUploader, Uploader>();
+            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+
             #endregion
 
             #region Http数据服务
+            services.AddSingleton<HttpServiceConfig>();
 
             var serviceConfig = new HttpServiceConfig();
             Configuration.GetSection(HTTP_SERVICE_KEY).Bind(serviceConfig);
@@ -148,12 +152,9 @@ namespace Ums.Host
 
             #region EFCore
 
-            services.AddDbContext<OneForAllContext>(options =>
+            services.AddDbContext<OneForAll_UmsContext>(options =>
                 options.UseSqlServer(Configuration["ConnectionStrings:Default"]));
             services.AddScoped<ITenantProvider, TenantProvider>();
-            services.AddSingleton<IUploader, Uploader>();
-            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-            services.AddSingleton<HttpServiceConfig>();
 
             #endregion
 
@@ -161,24 +162,33 @@ namespace Ums.Host
 
             var rabbitmqConfig = new RabbitMqConnectionConfig();
             Configuration.GetSection("RabbitMQ").Bind(rabbitmqConfig);
-            var factory = new RabbitMQ.Client.ConnectionFactory()
+            if (rabbitmqConfig.IsEnabled)
             {
-                HostName = rabbitmqConfig.HostName,
-                Port = rabbitmqConfig.Port,
-                UserName = rabbitmqConfig.UserName,
-                Password = rabbitmqConfig.Password,
-                VirtualHost = rabbitmqConfig.VirtualHost
-            };
-            services.AddSingleton(factory);
-            services.AddHostedService<MessageConsumerHostedService>();
+                var factory = new RabbitMQ.Client.ConnectionFactory()
+                {
+                    HostName = rabbitmqConfig.HostName,
+                    Port = rabbitmqConfig.Port,
+                    UserName = rabbitmqConfig.UserName,
+                    Password = rabbitmqConfig.Password,
+                    VirtualHost = rabbitmqConfig.VirtualHost
+                };
+                services.AddSingleton(factory);
+                services.AddHostedService<MessageConsumerHostedService>();
+                services.AddHostedService<WechatQyRobotConsumerHostedService>();
+                services.AddHostedService<WechatGzhTemplateConsumerHostedService>();
+            }
             #endregion
 
             #region MongoDb
-
-            var mongoDbClient = new MongoClient(Configuration["MongoDb:ConnectionString"]);
-            var mongoDb = mongoDbClient.GetDatabase(Configuration["MongoDb:DatabaseName"]);
-            services.AddSingleton(mongoDb);
-
+            var mongodbConfig = new MongoDbConnectionConfig();
+            Configuration.GetSection("MongoDb").Bind(mongodbConfig);
+            if (mongodbConfig.IsEnabled)
+            {
+                var mongoDbClient = new MongoClient(mongodbConfig.ConnectionString);
+                var mongoDb = mongoDbClient.GetDatabase(mongodbConfig.DatabaseName);
+                services.AddSingleton(mongoDb);
+            }
+            services.AddSingleton(mongodbConfig);
             #endregion
         }
 
@@ -201,10 +211,10 @@ namespace Ums.Host
                 .Where(t => t.Name.EndsWith("Manager"))
                 .AsImplementedInterfaces();
 
-            builder.RegisterType(typeof(OneForAllContext)).Named<DbContext>("OneForAllContext");
+            builder.RegisterType(typeof(OneForAll_UmsContext)).Named<DbContext>("OneForAll_UmsContext");
             builder.RegisterAssemblyTypes(Assembly.Load(BASE_REPOSITORY))
                .Where(t => t.Name.EndsWith("Repository"))
-               .WithParameter(ResolvedParameter.ForNamed<DbContext>("OneForAllContext"))
+               .WithParameter(ResolvedParameter.ForNamed<DbContext>("OneForAll_UmsContext"))
                .AsImplementedInterfaces();
 
             var authConfig = new AuthConfig();
@@ -247,6 +257,7 @@ namespace Ums.Host
             app.UseAuthorization();
 
             app.UseMiddleware<ApiLogMiddleware>();
+            app.UseMiddleware<GlobalExceptionMiddleware>();
 
             app.UseEndpoints(endpoints =>
             {

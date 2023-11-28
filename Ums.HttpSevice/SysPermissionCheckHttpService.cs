@@ -42,7 +42,7 @@ namespace Ums.HttpService
                 var uid = claims.FirstOrDefault(e => e.Type == UserClaimType.USER_ID).Value;
 
                 var client = GetHttpClient(_config.SysPermissionCheck);
-                var postData = new Models.SysPermissionCheck()
+                var postData = new Models.SysPermissionCheckRequest()
                 {
                     SysUserId = new Guid(uid),
                     ClientId = ClientClaimType.Id,

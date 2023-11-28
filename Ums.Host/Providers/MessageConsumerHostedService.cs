@@ -14,7 +14,9 @@ namespace Ums.Host
         private readonly IConnection _conn;
         private readonly IModel _channel;
         private readonly IUmsMessageManager _manager;
-        public MessageConsumerHostedService(IUmsMessageManager manager, ConnectionFactory mqFactory)
+        public MessageConsumerHostedService(
+            ConnectionFactory mqFactory,
+            IUmsMessageManager manager)
         {
             _manager = manager;
             _conn = mqFactory.CreateConnection();
@@ -23,7 +25,7 @@ namespace Ums.Host
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            await _manager.ReceiveAsync(_channel);
+            await _manager.ReceiveSystemAsync(_channel);
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)

@@ -9,7 +9,7 @@ namespace Ums.HttpService.Models
     /// <summary>
     /// 权限验证模型
     /// </summary>
-    public class SysPermissionCheck
+    public class SysPermissionCheckRequest
     {
         /// <summary>
         /// 机构id

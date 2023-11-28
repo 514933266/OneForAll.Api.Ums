@@ -17,7 +17,7 @@ namespace Ums.HttpService.Interfaces
         /// </summary>
         /// <param name="entity">实体</param>
         /// <returns></returns>
-        Task AddAsync(SysApiLogForm entity);
+        Task AddAsync(SysApiLogRequest entity);
     }
 }
 
