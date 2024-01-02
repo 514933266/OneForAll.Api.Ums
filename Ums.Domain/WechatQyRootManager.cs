@@ -121,7 +121,7 @@ namespace Ums.Domain
             channel.QueueDeclare(WechatQyRootQueueName.Text, true, false, false);
 
             var consumer = new EventingBasicConsumer(channel);
-            consumer.Received += async (model, e) =>
+            consumer.Received += (model, e) =>
             {
                 var msgStr = Encoding.UTF8.GetString(e.Body.ToArray());
                 var record = msgStr.FromJson<UmsMessageRecord>();
@@ -130,7 +130,7 @@ namespace Ums.Domain
                 {
                     var msg = record.OriginalMessage.FromJson<WechatQyRobotTextForm>();
                     var request = _mapper.Map<WechatQyRobotTextRequest>(msg);
-                    var response = await _httpService.SendTextAsync(request, msg.WebhookUrl);
+                    var response = _httpService.SendTextAsync(request, msg.WebhookUrl).Result;
                     if (response.Status)
                     {
                         record.Result = "Success";
@@ -144,7 +144,7 @@ namespace Ums.Domain
                 {
                     record.Result = "Error:".Append(ex.Message);
                 }
-                await _repository.AddAsync(record);
+                _repository.AddAsync(record);
             };
             channel.BasicConsume(WechatQyRootQueueName.Text, true, consumer);
         }
@@ -159,7 +159,7 @@ namespace Ums.Domain
             channel.QueueDeclare(WechatQyRootQueueName.Markdown, true, false, false);
 
             var consumer = new EventingBasicConsumer(channel);
-            consumer.Received += async (model, e) =>
+            consumer.Received += (model, e) =>
             {
                 var msgStr = Encoding.UTF8.GetString(e.Body.ToArray());
                 var record = msgStr.FromJson<UmsMessageRecord>();
@@ -168,7 +168,7 @@ namespace Ums.Domain
                 {
                     var msg = record.OriginalMessage.FromJson<WechatQyRobotTextForm>();
                     var request = _mapper.Map<WechatQyRobotMarkdownRequest>(msg);
-                    var response = await _httpService.SendMarkdownAsync(request, msg.WebhookUrl);
+                    var response = _httpService.SendMarkdownAsync(request, msg.WebhookUrl).Result;
                     if (response.Status)
                     {
                         record.Result = "Success";
@@ -182,11 +182,10 @@ namespace Ums.Domain
                 {
                     record.Result = "Error:".Append(ex.Message);
                 }
-                await _repository.AddAsync(record);
+                _repository.AddAsync(record);
             };
             channel.BasicConsume(WechatQyRootQueueName.Markdown, true, consumer);
         }
-
     }
 }
 

@@ -113,7 +113,7 @@ namespace Ums.Domain
                 if (_mongoDbConfig.IsEnabled)
                 {
                     #region MongoDb模式
-                    var collection = _mongoDb.GetCollection<UmsMessage>(_mongoDbConfig.DatabaseName);
+                    var collection = _mongoDb.GetCollection<UmsMessage>("Ums_Message");
                     var exists = collection.CountDocuments(w => w.Id == msg.Id && w.ToAccountId == msg.ToAccountId) > 0;
                     if (!exists)
                     {
