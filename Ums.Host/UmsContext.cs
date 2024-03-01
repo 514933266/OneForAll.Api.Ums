@@ -5,9 +5,9 @@ using Ums.Domain.AggregateRoots;
 
 namespace Ums.Host
 {
-    public partial class OneForAll_UmsContext : DbContext
+    public partial class UmsContext : DbContext
     {
-        public OneForAll_UmsContext(DbContextOptions<OneForAll_UmsContext> options)
+        public UmsContext(DbContextOptions<UmsContext> options)
             : base(options)
         {
 

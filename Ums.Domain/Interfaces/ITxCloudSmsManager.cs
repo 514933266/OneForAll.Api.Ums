@@ -18,6 +18,6 @@ namespace Ums.Domain.Interfaces
         /// </summary>
         /// <param name="form"></param>
         /// <returns></returns>
-        Task<BaseErrType> SendAsync(TxCloudSmsForm form);
+        Task<BaseMessage> SendAsync(TxCloudSmsForm form);
     }
 }

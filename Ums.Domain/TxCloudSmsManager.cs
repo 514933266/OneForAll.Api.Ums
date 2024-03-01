@@ -14,12 +14,10 @@ using Ums.Domain.AggregateRoots;
 using Ums.Domain.Interfaces;
 using Ums.Domain.Models;
 using Ums.Domain.Repositorys;
-using Ums.Domain.ValueObjects;
 using TencentCloud.Sms.V20210111;
 using TencentCloud.Sms.V20210111.Models;
 using Microsoft.Extensions.Configuration;
 using OneForAll.Core.Security;
-using OneForAll.Core.Extension;
 using OneForAll.Core.Utility;
 using Ums.Domain.Enums;
 
@@ -31,16 +29,13 @@ namespace Ums.Domain
     public class TxCloudSmsManager : UmsBaseManager, ITxCloudSmsManager
     {
         private readonly IConfiguration _config;
-        private readonly IUmsSmsRecordRepository _repository;
 
         public TxCloudSmsManager(
             IMapper mapper,
             IHttpContextAccessor httpContextAccessor,
-            IConfiguration config,
-            IUmsSmsRecordRepository repository) : base(mapper, httpContextAccessor)
+            IConfiguration config) : base(mapper, httpContextAccessor)
         {
             _config = config;
-            _repository = repository;
         }
 
         /// <summary>
@@ -48,8 +43,9 @@ namespace Ums.Domain
         /// </summary>
         /// <param name="form"></param>
         /// <returns></returns>
-        public async Task<BaseErrType> SendAsync(TxCloudSmsForm form)
+        public async Task<BaseMessage> SendAsync(TxCloudSmsForm form)
         {
+            var msg = new BaseMessage();
             var secretId = _config["Sms:TxCloud:SecretId"];
             var secretKey = _config["Sms:TxCloud:SecretKey"];
             var appId = _config["Sms:TxCloud:AppId"];
@@ -59,7 +55,7 @@ namespace Ums.Domain
             };
 
             if (!signs.Any(w => w == form.Sign))
-                return BaseErrType.TokenInvalid;
+                return msg.Fail(BaseErrType.TokenInvalid);
 
             /* 必要步骤：
              * 实例化一个认证对象，入参需要传入腾讯云账户密钥对secretId，secretKey。
@@ -135,22 +131,12 @@ namespace Ums.Domain
             var result = StringHelper.MatchMiddleValue(str, "\"Code\":\"", "\"");
             var error = StringHelper.MatchMiddleValue(str, "\"Message\":\"", "\"");
             var success = result.ToLower() == "ok" ? true : false;
-            await _repository.AddAsync(new UmsSmsRecord()
-            {
-                ErrMsg = error,
-                PlatformName = "腾讯云",
-                Content = form.Content,
-                PhoneNumber = form.PhoneNumber,
-                MoudleCode = form.MoudleCode,
-                MoudleName = form.MoudleName,
-                SignName = form.SignName,
-                Status = success ? UmsSmsSendStatusEnum.Success : UmsSmsSendStatusEnum.Error,
-            });
+
             if (success)
             {
-                return BaseErrType.Success;
+                return msg.Success(error);
             }
-            return BaseErrType.Fail;
+            return msg.Fail(error);
         }
     }
 }

@@ -152,7 +152,7 @@ namespace Ums.Host
 
             #region EFCore
 
-            services.AddDbContext<OneForAll_UmsContext>(options =>
+            services.AddDbContext<UmsContext>(options =>
                 options.UseSqlServer(Configuration["ConnectionStrings:Default"]));
             services.AddScoped<ITenantProvider, TenantProvider>();
 
@@ -211,10 +211,10 @@ namespace Ums.Host
                 .Where(t => t.Name.EndsWith("Manager"))
                 .AsImplementedInterfaces();
 
-            builder.RegisterType(typeof(OneForAll_UmsContext)).Named<DbContext>("OneForAll_UmsContext");
+            builder.RegisterType(typeof(UmsContext)).Named<DbContext>("UmsContext");
             builder.RegisterAssemblyTypes(Assembly.Load(BASE_REPOSITORY))
                .Where(t => t.Name.EndsWith("Repository"))
-               .WithParameter(ResolvedParameter.ForNamed<DbContext>("OneForAll_UmsContext"))
+               .WithParameter(ResolvedParameter.ForNamed<DbContext>("UmsContext"))
                .AsImplementedInterfaces();
 
             var authConfig = new AuthConfig();
@@ -245,7 +245,7 @@ namespace Ums.Host
                 RequestPath = new PathString("/resources"),
                 OnPrepareResponse = (c) =>
                 {
-                    c.Context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+                    c.Context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
                 }
             });
 

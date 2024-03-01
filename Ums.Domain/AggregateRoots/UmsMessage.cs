@@ -3,6 +3,7 @@ using OneForAll.Core.DDD;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -40,10 +41,14 @@ namespace Ums.Domain.AggregateRoots
         [Required]
         public Guid ToAccountId { get; set; }
 
+        [Required]
+        public bool IsRead { get; set; }
+
         /// <summary>
         /// 创建时间
         /// </summary>
         [Required]
+        [Column(TypeName = "varchar(50)")]
         public DateTime CreateTime { get; set; } = DateTime.Now;
     }
 }

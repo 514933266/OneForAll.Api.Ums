@@ -34,7 +34,6 @@ namespace Ums.Domain.Models
         /// <summary>
         /// 模板跳转链接（海外账号没有跳转能力）
         /// </summary>
-        [Required]
         public string Url { get; set; }
 
         /// <summary>

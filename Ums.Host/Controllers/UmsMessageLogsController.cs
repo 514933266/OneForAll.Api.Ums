@@ -12,6 +12,7 @@ using Ums.Domain.Models;
 using Ums.Application.Interfaces;
 using Ums.Host.Filters;
 using Ums.Application.Dtos;
+using OneForAll.Core.OAuth;
 
 namespace Ums.Host.Controllers
 {

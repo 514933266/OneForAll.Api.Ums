@@ -12,6 +12,7 @@ using OneForAll.Core.Extension;
 using Ums.Public.Models;
 using Ums.HttpService.Models;
 using Ums.HttpService.Interfaces;
+using OneForAll.Core.OAuth;
 
 namespace Ums.HttpService
 {
@@ -38,7 +39,7 @@ namespace Ums.HttpService
         {
             if (!Token.IsNullOrEmpty())
             {
-                var claims = _httpContext.HttpContext.User.Claims;
+                var claims = _httpContextAccessor.HttpContext.User.Claims;
                 var uid = claims.FirstOrDefault(e => e.Type == UserClaimType.USER_ID).Value;
 
                 var client = GetHttpClient(_config.SysPermissionCheck);

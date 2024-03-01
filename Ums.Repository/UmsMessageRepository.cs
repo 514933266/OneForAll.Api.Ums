@@ -20,7 +20,5 @@ namespace Ums.Repository
         {
 
         }
-
-
     }
 }
