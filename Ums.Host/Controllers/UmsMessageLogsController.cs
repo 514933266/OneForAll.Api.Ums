@@ -48,9 +48,9 @@ namespace Ums.Host.Controllers
             int pageSize,
             [FromQuery] DateTime? startTime,
             [FromQuery] DateTime? endTime,
-            [FromQuery] string exChangeName,
-            [FromQuery] string queueName,
-            [FromQuery] string routeKey)
+            [FromQuery] string exChangeName = default,
+            [FromQuery] string queueName = default,
+            [FromQuery] string routeKey = default)
         {
             return await _service.GetPgaeAsync(pageIndex, pageSize, startTime, endTime, exChangeName, queueName, routeKey);
         }

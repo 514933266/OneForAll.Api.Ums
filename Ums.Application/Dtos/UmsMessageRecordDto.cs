@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Ums.Domain.Enums;
 
 namespace Ums.Application.Dtos
 {
@@ -23,6 +24,11 @@ namespace Ums.Application.Dtos
         /// 结果
         /// </summary>
         public string Result { get; set; }
+
+        /// <summary>
+        /// 状态
+        /// </summary>
+        public UmsMessageStatusEnum Status { get; set; }
 
         /// <summary>
         /// 交换机名称

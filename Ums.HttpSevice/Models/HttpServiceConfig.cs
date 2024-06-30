@@ -44,5 +44,10 @@ namespace Ums.HttpService.Models
         /// 微信公众号模板消息
         /// </summary>
         public string WechatGzhTemplate { get; set; } = "WechatGzhTemplate";
+
+        /// <summary>
+        /// 定时任务调度中心
+        /// </summary>
+        public string ScheduleJob { get; set; } = "ScheduleJob";
     }
 }

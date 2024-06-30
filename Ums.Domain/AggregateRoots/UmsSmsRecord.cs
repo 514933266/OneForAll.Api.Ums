@@ -53,18 +53,16 @@ namespace Ums.Domain.AggregateRoots
         public string NationCode { get; set; } = "";
 
         /// <summary>
-        /// 手机号码
+        /// 手机号码（多个号码以,号隔开）
         /// </summary>
         [Required]
-        [StringLength(20)]
         public string PhoneNumber { get; set; }
 
         /// <summary>
-        /// 原始消息
+        /// 原始消息（多个参数以,号隔开）
         /// </summary>
         [Required]
-        [StringLength(200)]
-        public string Content { get; set; }
+        public string Content { get; set; } = "直接发送模板内容";
 
         /// <summary>
         /// 发送状态

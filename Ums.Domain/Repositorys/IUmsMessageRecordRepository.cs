@@ -33,5 +33,17 @@ namespace Ums.Domain.Repositorys
             string exChangeName,
             string queueName,
             string routeKey);
+
+        /// <summary>
+        /// 当天未发送队列消息（超一小时）
+        /// </summary>
+        /// <returns></returns>
+        Task<IEnumerable<UmsMessageRecord>> GetListExpiryANTAsync();
+
+        /// <summary>
+        /// 查询指定消息id数据
+        /// </summary>
+        /// <returns></returns>
+        Task<UmsMessageRecord> GetByMessageANTAsync(Guid messageId);
     }
 }

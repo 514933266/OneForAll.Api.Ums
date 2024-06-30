@@ -35,7 +35,13 @@ namespace Ums.Domain.AggregateRoots
         /// 结果
         /// </summary>
         [Required]
-        public string Result { get; set; }
+        public string Result { get; set; } = "";
+
+        /// <summary>
+        /// 状态
+        /// </summary>
+        [Required]
+        public UmsMessageStatusEnum Status { get; set; } = UmsMessageStatusEnum.Pending;
 
         /// <summary>
         /// 交换机名称

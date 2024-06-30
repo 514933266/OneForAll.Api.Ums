@@ -40,17 +40,14 @@ namespace Ums.Domain.Models
         public string TemplateId { get; set; }
 
         /// <summary>
-        /// 手机号
+        /// 手机号（多个号码以,号隔开）
         /// </summary>
         [Required]
-        [StringLength(20)]
         public string PhoneNumber { get; set; }
 
         /// <summary>
-        /// 短信内容,70个字
+        /// 短信内容（多个参数以,号隔开）
         /// </summary>
-        [Required]
-        [StringLength(140)]
         public string Content { get; set; }
 
         /// <summary>

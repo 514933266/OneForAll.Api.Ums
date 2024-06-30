@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Ums.Domain.AggregateRoots;
 using Ums.Domain.Repositorys;
 using OneForAll.Core.Extension;
+using Ums.Domain.Enums;
 
 namespace Ums.Repository
 {
@@ -72,6 +73,25 @@ namespace Ums.Repository
                 .ToListAsync();
 
             return new PageList<UmsMessageRecord>(total, pageIndex, pageSize, items);
+        }
+
+        /// <summary>
+        /// 当天未发送队列消息（超3小时）
+        /// </summary>
+        /// <returns></returns>
+        public async Task<IEnumerable<UmsMessageRecord>> GetListExpiryANTAsync()
+        {
+            var startTime = DateTime.Now.AddHours(-3);
+            return await DbSet.AsNoTracking().Where(w => w.Status == UmsMessageStatusEnum.Pending && w.CreateTime >= startTime).ToListAsync();
+        }
+
+        /// <summary>
+        /// 查询指定消息id数据
+        /// </summary>
+        /// <returns></returns>
+        public async Task<UmsMessageRecord> GetByMessageANTAsync(Guid messageId)
+        {
+            return await DbSet.AsNoTracking().FirstOrDefaultAsync(w => w.MessageId == messageId);
         }
     }
 }

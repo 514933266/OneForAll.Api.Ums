@@ -46,7 +46,7 @@ namespace Ums.Host.Controllers
             int pageSize,
             [FromQuery] DateTime? startTime,
             [FromQuery] DateTime? endTime,
-            [FromQuery] string platformName)
+            [FromQuery] string platformName = default)
         {
             return await _service.GetPgaeAsync(pageIndex, pageSize, startTime, endTime, platformName);
         }

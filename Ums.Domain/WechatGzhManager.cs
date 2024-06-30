@@ -10,6 +10,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Ums.Domain.AggregateRoots;
+using Ums.Domain.Enums;
 using Ums.Domain.Interfaces;
 using Ums.Domain.Models;
 using Ums.Domain.Repositorys;
@@ -56,7 +57,15 @@ namespace Ums.Domain
                 QueueName = WechatGzhQueueName.Template,
                 RouteKey = WechatGzhQueueName.Template
             };
-            return await SendAsync(WechatGzhQueueName.Template, data.ToJson());
+            var errType = await ResultAsync(() => _repository.AddAsync(data));
+            if (errType == BaseErrType.Success)
+            {
+                return await SendAsync(WechatGzhQueueName.Template, data.ToJson());
+            }
+            else
+            {
+                return BaseErrType.ServerError;
+            }
         }
 
         /// <summary>
@@ -65,7 +74,7 @@ namespace Ums.Domain
         /// <param name="queueName">队列名称</param>
         /// <param name="msg">消息json</param>
         /// <returns></returns>
-        private async Task<BaseErrType> SendAsync(string queueName, string msg)
+        public async Task<BaseErrType> SendAsync(string queueName, string msg)
         {
             using (var conn = _mqFactory.CreateConnection())
             {
@@ -106,18 +115,21 @@ namespace Ums.Domain
                     var response = _httpService.SendTemplateAsync(request, msg.AccessToken).Result;
                     if (response.Status)
                     {
-                        record.Result = "Success";
+                        record.Status = UmsMessageStatusEnum.Success;
+                        record.Result = "发送成功";
                     }
                     else
                     {
-                        record.Result = "Fail：" + response.Message;
+                        record.Status = UmsMessageStatusEnum.Fail;
+                        record.Result = "发送失败：".Append(response.Message);
                     }
                 }
                 catch (Exception ex)
                 {
-                    record.Result = "Error:".Append(ex.Message);
+                    record.Status = UmsMessageStatusEnum.Error;
+                    record.Result = "发送异常：".Append(ex.Message);
                 }
-                _repository.AddAsync(record);
+                _repository.UpdateAsync(record);
             };
             channel.BasicConsume(WechatGzhQueueName.Template, true, consumer);
         }

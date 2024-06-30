@@ -20,6 +20,7 @@ using Microsoft.Extensions.Configuration;
 using OneForAll.Core.Security;
 using OneForAll.Core.Utility;
 using Ums.Domain.Enums;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Ums.Domain
 {
@@ -113,10 +114,10 @@ namespace Ums.Domain
             // 模板 ID 可前往 [国内短信](https://console.cloud.tencent.com/smsv2/csms-template) 或 [国际/港澳台短信](https://console.cloud.tencent.com/smsv2/isms-template) 的正文模板管理查看
             req.TemplateId = form.TemplateId;
             /* 模板参数: 模板参数的个数需要与 TemplateId 对应模板的变量个数保持一致，若无模板参数，则设置为空 */
-            req.TemplateParamSet = new String[] { form.Content };
+            req.TemplateParamSet = form.Content.IsNullOrEmpty() ? new string[0] : form.Content.Split(',');
             /* 下发手机号码，采用 E.164 标准，+[国家或地区码][手机号]
              * 示例如：+8613711112222， 其中前面有一个+号 ，86为国家码，13711112222为手机号，最多不要超过200个手机号*/
-            req.PhoneNumberSet = new String[] { form.PhoneNumber };
+            req.PhoneNumberSet = form.PhoneNumber.Split(',');
             /* 用户的 session 内容（无需要可忽略）: 可以携带用户侧 ID 等上下文信息，server 会原样返回 */
             req.SessionContext = "";
             /* 短信码号扩展号（无需要可忽略）: 默认未开通，如需开通请联系 [腾讯云短信小助手] */

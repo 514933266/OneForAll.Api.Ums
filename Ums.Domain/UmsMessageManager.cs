@@ -66,7 +66,15 @@ namespace Ums.Domain
                 QueueName = UmsQueueName.System,
                 RouteKey = UmsQueueName.System
             };
-            return await SendAsync(UmsQueueName.System, data.ToJson());
+            var errType = await ResultAsync(() => _repository.AddAsync(data));
+            if (errType == BaseErrType.Success)
+            {
+                return await SendAsync(UmsQueueName.System, data.ToJson());
+            }
+            else
+            {
+                return BaseErrType.ServerError;
+            }
         }
 
         /// <summary>
@@ -75,7 +83,7 @@ namespace Ums.Domain
         /// <param name="queueName">队列名称</param>
         /// <param name="msg">消息json</param>
         /// <returns></returns>
-        private async Task<BaseErrType> SendAsync(string queueName, string msg)
+        public async Task<BaseErrType> SendAsync(string queueName, string msg)
         {
             using (var conn = _mqFactory.CreateConnection())
             {
@@ -117,13 +125,15 @@ namespace Ums.Domain
                     var exists = collection.CountDocuments(w => w.Id == msg.Id && w.ToAccountId == msg.ToAccountId) > 0;
                     if (!exists)
                     {
-                        var data = _mapper.Map<UmsMessageForm, UmsMessage>(msg);
-                        collection.InsertOne(data);
-                        record.Result = "Success";
+                        var item = _mapper.Map<UmsMessageForm, UmsMessage>(msg);
+                        collection.InsertOne(item);
+                        record.Status = UmsMessageStatusEnum.Success;
+                        record.Result = "发送成功";
                     }
                     else
                     {
-                        record.Result = "Fail";
+                        record.Status = UmsMessageStatusEnum.Fail;
+                        record.Result = "发送失败：数据不存在";
                     }
                     #endregion
                 }
@@ -133,17 +143,19 @@ namespace Ums.Domain
                     var exists = _umsRepository.CountAsync(w => w.Id == msg.Id && w.ToAccountId == msg.ToAccountId).Result > 0;
                     if (!exists)
                     {
-                        var data = _mapper.Map<UmsMessageForm, UmsMessage>(msg);
-                        _umsRepository.AddAsync(data);
-                        record.Result = "Success";
+                        var item = _mapper.Map<UmsMessageForm, UmsMessage>(msg);
+                        _umsRepository.AddAsync(item);
+                        record.Status = UmsMessageStatusEnum.Success;
+                        record.Result = "发送成功";
                     }
                     else
                     {
-                        record.Result = "Fail";
+                        record.Status = UmsMessageStatusEnum.Fail;
+                        record.Result = "发送失败：数据不存在";
                     }
                     #endregion
                 }
-                _repository.AddAsync(record);
+                _repository.UpdateAsync(record);
             };
             channel.BasicConsume(UmsQueueName.System, true, consumer);
         }

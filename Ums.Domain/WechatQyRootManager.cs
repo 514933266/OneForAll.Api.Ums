@@ -64,7 +64,15 @@ namespace Ums.Domain
                 QueueName = WechatQyRootQueueName.Text,
                 RouteKey = WechatQyRootQueueName.Text
             };
-            return await SendAsync(WechatQyRootQueueName.Text, data.ToJson());
+            var errType = await ResultAsync(() => _repository.AddAsync(data));
+            if (errType == BaseErrType.Success)
+            {
+                return await SendAsync(WechatQyRootQueueName.Text, data.ToJson());
+            }
+            else
+            {
+                return BaseErrType.ServerError;
+            }
         }
 
         /// <summary>
@@ -92,7 +100,7 @@ namespace Ums.Domain
         /// <param name="queueName">队列名称</param>
         /// <param name="msg">消息json</param>
         /// <returns></returns>
-        private async Task<BaseErrType> SendAsync(string queueName, string msg)
+        public async Task<BaseErrType> SendAsync(string queueName, string msg)
         {
             using (var conn = _mqFactory.CreateConnection())
             {
@@ -133,18 +141,21 @@ namespace Ums.Domain
                     var response = _httpService.SendTextAsync(request, msg.WebhookUrl).Result;
                     if (response.Status)
                     {
-                        record.Result = "Success";
+                        record.Status = UmsMessageStatusEnum.Success;
+                        record.Result = "发送成功";
                     }
                     else
                     {
-                        record.Result = "Fail：" + response.Message;
+                        record.Status = UmsMessageStatusEnum.Fail;
+                        record.Result = "发送失败：".Append(response.Message);
                     }
                 }
                 catch (Exception ex)
                 {
-                    record.Result = "Error:".Append(ex.Message);
+                    record.Status = UmsMessageStatusEnum.Error;
+                    record.Result = "发送异常：".Append(ex.Message);
                 }
-                _repository.AddAsync(record);
+                _repository.UpdateAsync(record);
             };
             channel.BasicConsume(WechatQyRootQueueName.Text, true, consumer);
         }
@@ -171,18 +182,21 @@ namespace Ums.Domain
                     var response = _httpService.SendMarkdownAsync(request, msg.WebhookUrl).Result;
                     if (response.Status)
                     {
-                        record.Result = "Success";
+                        record.Status = UmsMessageStatusEnum.Success;
+                        record.Result = "发送成功";
                     }
                     else
                     {
-                        record.Result = "Fail：" + response.Message;
+                        record.Status = UmsMessageStatusEnum.Fail;
+                        record.Result = "发送失败：".Append(response.Message);
                     }
                 }
                 catch (Exception ex)
                 {
-                    record.Result = "Error:".Append(ex.Message);
+                    record.Status = UmsMessageStatusEnum.Error;
+                    record.Result = "发送异常：".Append(ex.Message);
                 }
-                _repository.AddAsync(record);
+                _repository.UpdateAsync(record);
             };
             channel.BasicConsume(WechatQyRootQueueName.Markdown, true, consumer);
         }

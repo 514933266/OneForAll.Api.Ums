@@ -26,6 +26,9 @@ using Ums.HttpService.Models;
 using OneForAll.Core.Upload;
 using MongoDB.Driver;
 using Ums.Host.Providers;
+using Quartz.Impl;
+using Quartz.Spi;
+using Quartz;
 
 namespace Ums.Host
 {
@@ -33,7 +36,7 @@ namespace Ums.Host
     {
         private const string CORS = "Cors";
         private const string AUTH = "Auth";
-
+        private const string QUARTZ = "Quartz";
         private const string HTTP_SERVICE = "Ums.HttpService";
         private const string HTTP_SERVICE_KEY = "HttpService";
 
@@ -55,12 +58,24 @@ namespace Ums.Host
 
             var corsConfig = new CorsConfig();
             Configuration.GetSection(CORS).Bind(corsConfig);
-            services.AddCors(option => option.AddPolicy(CORS, policy => policy
+            if (corsConfig.Origins.Contains("*") || !corsConfig.Origins.Any())
+            {
+                // 不限制跨域
+                services.AddCors(option => option.AddPolicy(CORS, policy => policy
                     .AllowAnyOrigin()
                     .AllowAnyHeader()
                     .AllowAnyMethod()
                 ));
-
+            }
+            else
+            {
+                services.AddCors(option => option.AddPolicy(CORS, policy => policy
+                    .WithOrigins(corsConfig.Origins)
+                    .AllowAnyHeader()
+                    .AllowAnyMethod().
+                    AllowCredentials()
+                ));
+            }
             #endregion
 
             #region Swagger
@@ -150,11 +165,13 @@ namespace Ums.Host
 
             #endregion
 
-            #region EFCore
+            #region DI
 
-            services.AddDbContext<UmsContext>(options =>
-                options.UseSqlServer(Configuration["ConnectionStrings:Default"]));
+            services.AddSingleton<IUploader, Uploader>();
             services.AddScoped<ITenantProvider, TenantProvider>();
+            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+            services.AddSingleton<HttpServiceConfig>();
+            services.AddSingleton(authConfig);
 
             #endregion
 
@@ -190,6 +207,31 @@ namespace Ums.Host
             }
             services.AddSingleton(mongodbConfig);
             #endregion
+
+            #region Quartz
+
+            var quartzConfig = new QuartzScheduleJobConfig();
+            Configuration.GetSection(QUARTZ).Bind(quartzConfig);
+            // 注册QuartzJobs目录下的定时任务
+            if (quartzConfig != null)
+            {
+                services.AddSingleton(quartzConfig);
+                services.AddSingleton<IJobFactory, ScheduleJobFactory>();
+                services.AddSingleton<ISchedulerFactory, StdSchedulerFactory>();
+                services.AddHostedService<QuartzJobHostService>();
+                var jobNamespace = BASE_HOST.Append(".QuartzJobs");
+                quartzConfig.ScheduleJobs.ForEach(e =>
+                {
+                    var typeName = jobNamespace + "." + e.TypeName;
+                    var jobType = Assembly.Load(BASE_HOST).GetType(typeName);
+                    if (jobType != null)
+                    {
+                        e.JobType = jobType;
+                        services.AddSingleton(e.JobType);
+                    }
+                });
+            }
+            #endregion
         }
 
         public void ConfigureContainer(ContainerBuilder builder)
@@ -199,27 +241,29 @@ namespace Ums.Host
                .Where(t => t.Name.EndsWith("Service"))
                .AsImplementedInterfaces();
 
-            // 基础
-            builder.RegisterGeneric(typeof(Repository<>))
-                .As(typeof(IEFCoreRepository<>));
-
+            // 应用层
             builder.RegisterAssemblyTypes(Assembly.Load(BASE_APPLICATION))
                 .Where(t => t.Name.EndsWith("Service"))
                 .AsImplementedInterfaces();
 
+            // 领域层
             builder.RegisterAssemblyTypes(Assembly.Load(BASE_DOMAIN))
                 .Where(t => t.Name.EndsWith("Manager"))
                 .AsImplementedInterfaces();
 
-            builder.RegisterType(typeof(UmsContext)).Named<DbContext>("UmsContext");
+            // 仓储层
+            builder.Register(p =>
+            {
+                var optionBuilder = new DbContextOptionsBuilder<UmsContext>();
+                optionBuilder.UseSqlServer(Configuration["ConnectionStrings:Default"]);
+                return optionBuilder.Options;
+            }).AsSelf();
+
+            builder.RegisterType<UmsContext>().Named<DbContext>("UmsContext");
             builder.RegisterAssemblyTypes(Assembly.Load(BASE_REPOSITORY))
                .Where(t => t.Name.EndsWith("Repository"))
                .WithParameter(ResolvedParameter.ForNamed<DbContext>("UmsContext"))
                .AsImplementedInterfaces();
-
-            var authConfig = new AuthConfig();
-            Configuration.GetSection(AUTH).Bind(authConfig);
-            builder.Register(s => authConfig).SingleInstance();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
