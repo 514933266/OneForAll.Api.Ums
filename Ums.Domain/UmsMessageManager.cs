@@ -28,7 +28,7 @@ namespace Ums.Domain
     public class UmsMessageManager : UmsBaseManager, IUmsMessageManager
     {
         private readonly string _exchangeName = "ums.direct.exchange";
-        private readonly ConnectionFactory _mqFactory;
+        private readonly IConnection _mqConn;
         private readonly MongoDbConnectionConfig _mongoDbConfig;
 
         private readonly IUmsMessageRecordRepository _repository;
@@ -39,11 +39,11 @@ namespace Ums.Domain
             IHttpContextAccessor httpContextAccessor,
             IUmsMessageRecordRepository repository,
             IUmsMessageRepository umsRepository,
-            ConnectionFactory mqFactory,
+            IConnection mqConn,
             MongoDbConnectionConfig mongoDbConfig,
             IMongoDatabase mongoDb = null) : base(mapper, httpContextAccessor)
         {
-            _mqFactory = mqFactory;
+            _mqConn = mqConn;
             _mongoDbConfig = mongoDbConfig;
             _mongoDb = mongoDb;
             _repository = repository;
@@ -85,19 +85,16 @@ namespace Ums.Domain
         /// <returns></returns>
         public async Task<BaseErrType> SendAsync(string queueName, string msg)
         {
-            using (var conn = _mqFactory.CreateConnection())
+            using (var channel = _mqConn.CreateModel())
             {
-                using (var channel = conn.CreateModel())
-                {
-                    channel.QueueDeclare(queueName, true, false, false);
-                    channel.ExchangeDeclare(_exchangeName, ExchangeType.Direct, true);
-                    channel.QueueBind(queueName, _exchangeName, queueName);
+                channel.QueueDeclare(queueName, true, false, false);
+                channel.ExchangeDeclare(_exchangeName, ExchangeType.Direct, true);
+                channel.QueueBind(queueName, _exchangeName, queueName);
 
-                    var basicProperties = channel.CreateBasicProperties();
-                    basicProperties.DeliveryMode = 2;
-                    byte[] body = Encoding.UTF8.GetBytes(msg);
-                    channel.BasicPublish(_exchangeName, UmsQueueName.System, basicProperties, body);
-                }
+                var basicProperties = channel.CreateBasicProperties();
+                basicProperties.DeliveryMode = 2;
+                byte[] body = Encoding.UTF8.GetBytes(msg);
+                channel.BasicPublish(_exchangeName, UmsQueueName.System, basicProperties, body);
             }
             return BaseErrType.Success;
         }

@@ -28,8 +28,9 @@ namespace Ums.Host.QuartzJobs
         private readonly IUmsMessageRecordRepository _repository;
 
         private readonly IUmsMessageManager _sysMsgManager;
-        private readonly IWechatGzhManager _wechatGzhMsgManager;
-        private readonly IWechatQyRootManager _wechatQyMsgManager;
+        private readonly IWxgzhManager _wxGzhMsgManager;
+        private readonly IWxqyManager _wxQyMsgManager;
+        private readonly IWxmpManager _wxmpMsgManager;
 
         private readonly IScheduleJobHttpService _jobHttpService;
         private readonly ISysGlobalExceptionLogHttpService _logHttpService;
@@ -38,16 +39,18 @@ namespace Ums.Host.QuartzJobs
             AuthConfig config,
             IUmsMessageRecordRepository repository,
             IUmsMessageManager sysMsgManager,
-            IWechatGzhManager wechatGzhMsgManager,
-            IWechatQyRootManager wechatQyMsgManager,
+            IWxgzhManager wxGzhMsgManager,
+            IWxqyManager wxQyMsgManager,
+            IWxmpManager wxmpMsgManager,
             IScheduleJobHttpService jobHttpService,
             ISysGlobalExceptionLogHttpService logHttpService)
         {
             _config = config;
             _repository = repository;
             _sysMsgManager = sysMsgManager;
-            _wechatGzhMsgManager = wechatGzhMsgManager;
-            _wechatQyMsgManager = wechatQyMsgManager;
+            _wxGzhMsgManager = wxGzhMsgManager;
+            _wxQyMsgManager = wxQyMsgManager;
+            _wxmpMsgManager = wxmpMsgManager;
             _jobHttpService = jobHttpService;
             _logHttpService = logHttpService;
         }
@@ -67,17 +70,25 @@ namespace Ums.Host.QuartzJobs
                         {
                             errType = await _sysMsgManager.SendAsync(item.QueueName, item.ToJson());
                         }
-                        else if (item.QueueName == WechatGzhQueueName.Template)
+                        else if (item.QueueName == WxgzhQueueName.Template)
                         {
-                            errType = await _wechatGzhMsgManager.SendAsync(item.QueueName, item.ToJson());
+                            errType = await _wxGzhMsgManager.SendAsync(item.QueueName, item.ToJson());
                         }
-                        else if (item.QueueName == WechatQyRootQueueName.Text)
+                        else if (item.QueueName == WxgzhQueueName.Subscribe)
                         {
-                            errType = await _wechatQyMsgManager.SendAsync(item.QueueName, item.ToJson());
+                            errType = await _wxGzhMsgManager.SendAsync(item.QueueName, item.ToJson());
                         }
-                        else if (item.QueueName == WechatQyRootQueueName.Markdown)
+                        else if (item.QueueName == WxQyRootQueueName.Text)
                         {
-                            errType = await _wechatQyMsgManager.SendAsync(item.QueueName, item.ToJson());
+                            errType = await _wxQyMsgManager.SendAsync(item.QueueName, item.ToJson());
+                        }
+                        else if (item.QueueName == WxQyRootQueueName.Markdown)
+                        {
+                            errType = await _wxQyMsgManager.SendAsync(item.QueueName, item.ToJson());
+                        }
+                        else if (item.QueueName == WxmpQueueName.Subscribe)
+                        {
+                            errType = await _wxmpMsgManager.SendAsync(item.QueueName, item.ToJson());
                         }
 
                         if (errType == BaseErrType.Success) effected++;

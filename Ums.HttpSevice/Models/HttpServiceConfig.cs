@@ -38,13 +38,23 @@ namespace Ums.HttpService.Models
         /// <summary>
         /// 企业微信机器人
         /// </summary>
-        public string WechatQyRobot { get; set; } = "WechatQyRobot";
+        public string WxQyRobot { get; set; } = "WxQyRobot";
 
         /// <summary>
         /// 微信公众号模板消息
         /// </summary>
-        public string WechatGzhTemplate { get; set; } = "WechatGzhTemplate";
+        public string WxgzhTemplate { get; set; } = "WxgzhTemplate";
 
+        /// <summary>
+        /// 微信公众号长期订阅消息
+        /// </summary>
+        public string WxgzhSubscribe { get; set; } = "WxgzhSubscribe";
+
+        /// <summary>
+        /// 微信公众号模板消息
+        /// </summary>
+        public string WxmpSubscribe { get; set; } = "WxmpSubscribe";
+        
         /// <summary>
         /// 定时任务调度中心
         /// </summary>

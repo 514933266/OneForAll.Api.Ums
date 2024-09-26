@@ -29,6 +29,7 @@ using Ums.Host.Providers;
 using Quartz.Impl;
 using Quartz.Spi;
 using Quartz;
+using RabbitMQ.Client;
 
 namespace Ums.Host
 {
@@ -190,9 +191,11 @@ namespace Ums.Host
                     VirtualHost = rabbitmqConfig.VirtualHost
                 };
                 services.AddSingleton(factory);
+                services.AddSingleton(factory.CreateConnection());
                 services.AddHostedService<MessageConsumerHostedService>();
-                services.AddHostedService<WechatQyRobotConsumerHostedService>();
-                services.AddHostedService<WechatGzhTemplateConsumerHostedService>();
+                services.AddHostedService<WxQyRobotConsumerHostedService>();
+                services.AddHostedService<WxgzhTemplateConsumerHostedService>();
+                services.AddHostedService<WxmpSubscribeConsumerHostedService>();
             }
             #endregion
 
