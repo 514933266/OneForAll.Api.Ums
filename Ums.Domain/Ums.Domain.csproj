@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="16.0.0" />
+    <PackageReference Include="OneForAll.Core" Version="2.1.1" />
+    <PackageReference Include="OneForAll.EFCore" Version="2.1.1" />
+    <PackageReference Include="OneForAll.File" Version="2.1.1" />
+    <PackageReference Include="RabbitMQ.Client" Version="7.2.0" />
+    <PackageReference Include="TencentCloudSDK" Version="3.0.1377" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Aggregates\" />
+    <Folder Include="ExcelModels\" />
+    <Folder Include="ValueObjects\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ums.HttpSevice\Ums.HttpService.csproj" />
+    <ProjectReference Include="..\Ums.Public\Ums.Public.csproj" />
+  </ItemGroup>
+
+</Project>
