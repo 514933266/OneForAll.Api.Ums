@@ -260,15 +260,15 @@ namespace Ums.Host
             // 仓储层
             builder.Register(p =>
             {
-                var optionBuilder = new DbContextOptionsBuilder<UmsContext>();
+                var optionBuilder = new DbContextOptionsBuilder<UmsDbContext>();
                 optionBuilder.UseSqlServer(Configuration["ConnectionStrings:Default"]);
                 return optionBuilder.Options;
             }).AsSelf();
 
-            builder.RegisterType<UmsContext>().Named<DbContext>("UmsContext");
+            builder.RegisterType<UmsDbContext>().Named<DbContext>("UmsDbContext");
             builder.RegisterAssemblyTypes(Assembly.Load(BASE_REPOSITORY))
                .Where(t => t.Name.EndsWith("Repository"))
-               .WithParameter(ResolvedParameter.ForNamed<DbContext>("UmsContext"))
+               .WithParameter(ResolvedParameter.ForNamed<DbContext>("UmsDbContext"))
                .AsImplementedInterfaces();
         }
 

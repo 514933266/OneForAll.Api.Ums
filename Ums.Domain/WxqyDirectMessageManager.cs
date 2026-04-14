@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using OneForAll.Core;
 using OneForAll.Core.Extension;
@@ -48,7 +48,7 @@ namespace Ums.Domain
                 RequestUrl = _httpContextAccessor.HttpContext.Request.Path,
                 OriginalMessage = form.ToJson(),
                 ExChangeName = "",
-                QueueName = UmsQueueName.WxqyRobotText,
+                QueueName = UmsQueueName.WxqyRobot,
                 RouteKey = ""
             };
             var errType = await ResultAsync(() => _repository.AddAsync(data));
@@ -90,9 +90,9 @@ namespace Ums.Domain
                 MessageId = Guid.NewGuid(),
                 RequestUrl = _httpContextAccessor.HttpContext.Request.Path,
                 OriginalMessage = form.ToJson(),
-                ExChangeName = "",
-                QueueName = UmsQueueName.WxqyRobotMarkdown,
-                RouteKey = ""
+                ExChangeName = "direct",
+                QueueName = "direct",
+                RouteKey = "direct"
             };
             var errType = await ResultAsync(() => _repository.AddAsync(data));
             if (errType != BaseErrType.Success) return BaseErrType.ServerError;

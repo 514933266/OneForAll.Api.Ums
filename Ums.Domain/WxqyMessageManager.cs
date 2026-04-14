@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using OneForAll.Core;
 using RabbitMQ.Client.Events;
@@ -53,13 +53,13 @@ namespace Ums.Domain
                 RequestUrl = _httpContextAccessor.HttpContext.Request.Path,
                 OriginalMessage = form.ToJson(),
                 ExChangeName = _directExchangeName,
-                QueueName = UmsQueueName.WxqyRobotText,
-                RouteKey = UmsQueueName.WxqyRobotText
+                QueueName = UmsQueueName.WxqyRobot,
+                RouteKey = UmsQueueName.WxqyRobot
             };
             var errType = await ResultAsync(() => _repository.AddAsync(data));
             if (errType == BaseErrType.Success)
             {
-                return await SendDirectAsync(UmsQueueName.WxqyRobotText, UmsQueueName.WxqyRobotText, data.ToJson());
+                return await SendDirectAsync(UmsQueueName.WxqyRobot, UmsQueueName.WxqyRobot, data.ToJson());
             }
             else
             {
@@ -80,13 +80,13 @@ namespace Ums.Domain
                 RequestUrl = _httpContextAccessor.HttpContext.Request.Path,
                 OriginalMessage = form.ToJson(),
                 ExChangeName = _directExchangeName,
-                QueueName = UmsQueueName.WxqyRobotMarkdown,
-                RouteKey = UmsQueueName.WxqyRobotMarkdown
+                QueueName = UmsQueueName.WxqyRobot,
+                RouteKey = UmsQueueName.WxqyRobot
             };
             var errType = await ResultAsync(() => _repository.AddAsync(data));
             if (errType == BaseErrType.Success)
             {
-                return await SendDirectAsync(UmsQueueName.WxqyRobotMarkdown, UmsQueueName.WxqyRobotMarkdown, data.ToJson());
+                return await SendDirectAsync(UmsQueueName.WxqyRobot, UmsQueueName.WxqyRobot, data.ToJson());
             }
             else
             {
@@ -101,7 +101,7 @@ namespace Ums.Domain
         /// <returns></returns>
         public async Task ReceiveTextAsync(IChannel channel)
         {
-            await channel.QueueDeclareAsync(UmsQueueName.WxqyRobotText, true, false, false);
+            await channel.QueueDeclareAsync(UmsQueueName.WxqyRobot, true, false, false);
 
             var consumer = new AsyncEventingBasicConsumer(channel);
             consumer.ReceivedAsync += async (model, e) =>
@@ -132,7 +132,7 @@ namespace Ums.Domain
                 }
                await _repository.UpdateAsync(record);
             };
-            await channel.BasicConsumeAsync(UmsQueueName.WxqyRobotText, true, consumer);
+            await channel.BasicConsumeAsync(UmsQueueName.WxqyRobot, true, consumer);
         }
 
         /// <summary>
@@ -142,7 +142,7 @@ namespace Ums.Domain
         /// <returns></returns>
         public async Task ReceiveMarkdownAsync(IChannel channel)
         {
-            await channel.QueueDeclareAsync(UmsQueueName.WxqyRobotText, true, false, false);
+            await channel.QueueDeclareAsync(UmsQueueName.WxqyRobot, true, false, false);
 
             var consumer = new AsyncEventingBasicConsumer(channel);
             consumer.ReceivedAsync += async (model, e) =>
@@ -177,4 +177,3 @@ namespace Ums.Domain
         }
     }
 }
-

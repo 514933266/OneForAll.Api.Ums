@@ -44,22 +44,12 @@ namespace Ums.Public.Models
         /// <summary>
         /// 企业微信
         /// </summary>
-        public const string WxqyRobotText = "robottext.wxqy.ums.queue";
-
-        /// <summary>
-        /// 企业微信
-        /// </summary>
-        public const string WxqyRobotMarkdown = "robottext.wxqy.ums.queue";
-
-        /// <summary>
-        /// 钉钉机器人Text
-        /// </summary>
-        public const string DingTalkRobotText = "robottext.dingtalk.ums.queue";
+        public const string WxqyRobot = "robot.wxqy.ums.queue";
 
         /// <summary>
         /// 钉钉机器人Markdown
         /// </summary>
-        public const string DingTalkRobotMarkdown = "robotmarkdown.dingtalk.ums.queue";
+        public const string DingTalkRobot = "robot.dingtalk.ums.queue";
 
         /// <summary>
         /// 腾讯云短信

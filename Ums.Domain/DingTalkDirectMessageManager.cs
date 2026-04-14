@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using OneForAll.Core;
 using OneForAll.Core.Extension;
@@ -47,9 +47,9 @@ namespace Ums.Domain
                 MessageId = Guid.NewGuid(),
                 RequestUrl = _httpContextAccessor.HttpContext.Request.Path,
                 OriginalMessage = form.ToJson(),
-                ExChangeName = "",
-                QueueName = UmsQueueName.DingTalkRobotText,
-                RouteKey = ""
+                ExChangeName = "direct",
+                QueueName = "direct",
+                RouteKey = "direct"
             };
             var errType = await ResultAsync(() => _repository.AddAsync(data));
             if (errType != BaseErrType.Success) return BaseErrType.ServerError;
@@ -91,7 +91,7 @@ namespace Ums.Domain
                 RequestUrl = _httpContextAccessor.HttpContext.Request.Path,
                 OriginalMessage = form.ToJson(),
                 ExChangeName = "",
-                QueueName = UmsQueueName.DingTalkRobotMarkdown,
+                QueueName = UmsQueueName.DingTalkRobot,
                 RouteKey = ""
             };
             var errType = await ResultAsync(() => _repository.AddAsync(data));

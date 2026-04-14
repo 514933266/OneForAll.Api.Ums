@@ -13,9 +13,18 @@ namespace Ums.Domain.Models
     public class WxqyRobotMessageForm
     {
         /// <summary>
+        /// 客户端id（与ConfigCode配合使用，从通知配置中获取机器人地址）
+        /// </summary>
+        public string ClientId { get; set; }
+
+        /// <summary>
+        /// 配置代码（与ClientId配合使用，从通知配置中获取机器人地址）
+        /// </summary>
+        public string ConfigCode { get; set; }
+
+        /// <summary>
         /// 机器人地址
         /// </summary>
-        [Required]
         public string WebhookUrl { get; set; }
 
         /// <summary>

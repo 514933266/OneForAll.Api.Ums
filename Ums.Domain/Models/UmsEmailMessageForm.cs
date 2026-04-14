@@ -13,6 +13,16 @@ namespace Ums.Domain.Models
     public class UmsEmailMessageForm
     {
         /// <summary>
+        /// 客户端id（与ConfigCode配合使用，从通知配置中获取邮件发送配置）
+        /// </summary>
+        public string ClientId { get; set; }
+
+        /// <summary>
+        /// 配置代码（与ClientId配合使用，从通知配置中获取邮件发送配置）
+        /// </summary>
+        public string ConfigCode { get; set; }
+
+        /// <summary>
         /// 收件人邮箱（多个以,号隔开）
         /// </summary>
         [Required]

@@ -37,8 +37,14 @@ namespace Ums.Host.Controllers
                 : await _service.SendTextAsync(form);
             switch (msg.ErrType)
             {
-                case BaseErrType.Success: return msg.Success("发送成功");
-                default: return msg.Fail("发送失败");
+                case BaseErrType.Success:
+                    return msg.Success("发送成功");
+                case BaseErrType.DataNotMatch:
+                    return msg.Success("未查询对应配置");
+                case BaseErrType.DataError:
+                    return msg.Success("配置异常");
+                default:
+                    return msg.Fail("发送失败");
             }
         }
 
@@ -58,8 +64,14 @@ namespace Ums.Host.Controllers
                 : await _service.SendMarkdownAsync(form);
             switch (msg.ErrType)
             {
-                case BaseErrType.Success: return msg.Success("发送成功");
-                default: return msg.Fail("发送失败");
+                case BaseErrType.Success:
+                    return msg.Success("发送成功");
+                case BaseErrType.DataNotMatch:
+                    return msg.Success("未查询对应配置");
+                case BaseErrType.DataError:
+                    return msg.Success("配置异常");
+                default:
+                    return msg.Fail("发送失败");
             }
         }
     }

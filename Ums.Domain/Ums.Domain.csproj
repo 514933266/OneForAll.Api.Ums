@@ -18,7 +18,6 @@
   <ItemGroup>
     <Folder Include="Aggregates\" />
     <Folder Include="ExcelModels\" />
-    <Folder Include="ValueObjects\" />
   </ItemGroup>
 
   <ItemGroup>

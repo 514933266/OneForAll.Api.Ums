@@ -5,9 +5,9 @@ using Ums.Domain.Entities;
 
 namespace Ums.Host
 {
-    public partial class UmsContext : DbContext
+    public partial class UmsDbContext : DbContext
     {
-        public UmsContext(DbContextOptions<UmsContext> options)
+        public UmsDbContext(DbContextOptions<UmsDbContext> options)
             : base(options)
         {
 
@@ -15,6 +15,7 @@ namespace Ums.Host
         public virtual DbSet<UmsMessage> UmsMessage { get; set; }
         public virtual DbSet<UmsMessageRecord> UmsMessageRecord { get; set; }
         public virtual DbSet<UmsSmsRecord> UmsSmsRecord { get; set; }
+        public virtual DbSet<UmsNotificationConfig> UmsNotificationConfig { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -33,6 +34,12 @@ namespace Ums.Host
             modelBuilder.Entity<UmsSmsRecord>(entity =>
             {
                 entity.ToTable("ums_sms_record");
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
+            });
+
+            modelBuilder.Entity<UmsNotificationConfig>(entity =>
+            {
+                entity.ToTable("ums_notification_config");
                 entity.Property(e => e.Id).ValueGeneratedOnAdd();
             });
         }
