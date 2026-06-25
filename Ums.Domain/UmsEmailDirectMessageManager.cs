@@ -1,3 +1,4 @@
+using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using OneForAll.Core;
@@ -18,18 +19,22 @@ namespace Ums.Domain
     /// <summary>
     /// 邮件消息-直接发送
     /// </summary>
-    public class UmsEmailDirectMessageManager : BaseManager, IUmsEmailDirectMessageManager
+    public class UmsEmailDirectMessageManager : UmsBaseManager, IUmsEmailDirectMessageManager
     {
         private readonly IConfiguration _config;
-        private readonly IUmsMessageRecordRepository _repository;
+
+        public override string ExChangeName => "direct";
+
+        public override string QueueName => UmsQueueName.Email;
+
+        public override string RouteKey => "direct";
 
         public UmsEmailDirectMessageManager(
+            IConfiguration config,
             IHttpContextAccessor httpContextAccessor,
-            IUmsMessageRecordRepository repository,
-            IConfiguration config) : base(httpContextAccessor)
+            IUmsMessageRecordRepository repository) : base(httpContextAccessor, repository)
         {
             _config = config;
-            _repository = repository;
         }
 
         /// <summary>
@@ -44,9 +49,9 @@ namespace Ums.Domain
                 MessageId = Guid.NewGuid(),
                 RequestUrl = _httpContextAccessor.HttpContext.Request.Path,
                 OriginalMessage = form.ToJson(),
-                ExChangeName = "direct",
-                QueueName = "direct",
-                RouteKey = "direct"
+                ExChangeName = ExChangeName,
+                QueueName = QueueName,
+                RouteKey = RouteKey
             };
             var errType = await ResultAsync(() => _repository.AddAsync(data));
             if (errType != BaseErrType.Success) return BaseErrType.ServerError;

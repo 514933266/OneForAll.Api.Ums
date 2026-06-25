@@ -18,21 +18,25 @@ namespace Ums.Domain
     /// <summary>
     /// 企业微信-直接发送
     /// </summary>
-    public class WxqyDirectMessageManager : BaseManager, IWxqyDirectMessageManager
+    public class WxqyDirectMessageManager : UmsBaseManager, IWxqyDirectMessageManager
     {
         private readonly IMapper _mapper;
         private readonly IWxqyHttpService _httpService;
-        private readonly IUmsMessageRecordRepository _repository;
+
+        public override string ExChangeName => "direct";
+
+        public override string QueueName => UmsQueueName.WxqyRobot;
+
+        public override string RouteKey => "direct";
 
         public WxqyDirectMessageManager(
             IMapper mapper,
             IHttpContextAccessor httpContextAccessor,
             IUmsMessageRecordRepository repository,
-            IWxqyHttpService httpService) : base(httpContextAccessor)
+            IWxqyHttpService httpService) : base(httpContextAccessor, repository)
         {
             _mapper = mapper;
             _httpService = httpService;
-            _repository = repository;
         }
 
         /// <summary>
@@ -47,9 +51,9 @@ namespace Ums.Domain
                 MessageId = Guid.NewGuid(),
                 RequestUrl = _httpContextAccessor.HttpContext.Request.Path,
                 OriginalMessage = form.ToJson(),
-                ExChangeName = "",
-                QueueName = UmsQueueName.WxqyRobot,
-                RouteKey = ""
+                ExChangeName = ExChangeName,
+                QueueName = QueueName,
+                RouteKey = RouteKey
             };
             var errType = await ResultAsync(() => _repository.AddAsync(data));
             if (errType != BaseErrType.Success) return BaseErrType.ServerError;
@@ -90,9 +94,9 @@ namespace Ums.Domain
                 MessageId = Guid.NewGuid(),
                 RequestUrl = _httpContextAccessor.HttpContext.Request.Path,
                 OriginalMessage = form.ToJson(),
-                ExChangeName = "direct",
-                QueueName = "direct",
-                RouteKey = "direct"
+                ExChangeName = ExChangeName,
+                QueueName = QueueName,
+                RouteKey = RouteKey
             };
             var errType = await ResultAsync(() => _repository.AddAsync(data));
             if (errType != BaseErrType.Success) return BaseErrType.ServerError;

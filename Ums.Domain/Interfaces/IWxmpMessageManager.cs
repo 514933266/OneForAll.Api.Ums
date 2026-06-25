@@ -12,7 +12,7 @@ namespace Ums.Domain.Interfaces
     /// <summary>
     /// 微信小程序
     /// </summary>
-    public interface IWxmpMessageManager
+    public interface IWxmpMessageManager : IUmsBaseManager
     {
         /// <summary>
         /// 发送模板消息

@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc.Authorization;
 using OneForAll.Core;
 using OneForAll.Core.Extension;
 using Ums.HttpService.Interfaces;
-using Ums.Host.Models;
+using Ums.Public.Models;
 
 namespace Ums.Host.Filters
 {

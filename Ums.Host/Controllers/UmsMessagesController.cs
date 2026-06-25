@@ -20,22 +20,23 @@ namespace Ums.Host.Controllers
     public class UmsMessagesController : BaseController
     {
         private readonly IUmsMessageService _service;
-        public UmsMessagesController(IUmsMessageService service)
+        private readonly RabbitMqConnectionConfig _rabbitMqConfig;
+        public UmsMessagesController(IUmsMessageService service, RabbitMqConnectionConfig rabbitMqConfig)
         {
             _service = service;
+            _rabbitMqConfig = rabbitMqConfig;
         }
 
         /// <summary>
-        /// 添加（isSync=true时同步发送，不经过MQ）
+        /// 添加（根据RabbitMQ配置决定发送方式）
         /// </summary>
         /// <param name="form">实体</param>
-        /// <param name="isSync">是否同步发送</param>
         /// <returns>结果</returns>
         [HttpPost]
-        public async Task<BaseMessage> AddAsync([FromBody] UmsMessageForm form, [FromQuery] bool isSync = false)
+        public async Task<BaseMessage> AddAsync([FromBody] UmsMessageForm form)
         {
             var msg = new BaseMessage();
-            msg.ErrType = isSync
+            msg.ErrType = !_rabbitMqConfig.IsEnabled
                 ? await _service.SendSystemDirectAsync(form)
                 : await _service.SendSystemAsync(form);
             switch (msg.ErrType)

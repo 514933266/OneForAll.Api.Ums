@@ -7,7 +7,7 @@ namespace Ums.Domain.Interfaces
     /// <summary>
     /// 腾讯云短信-直接发送
     /// </summary>
-    public interface ITxCloudSmsDirectManager
+    public interface ITxCloudSmsDirectManager : IUmsBaseManager
     {
         /// <summary>
         /// 直接发送短信消息（不经过MQ）

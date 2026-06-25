@@ -12,7 +12,7 @@ namespace Ums.Domain.Interfaces
     /// <summary>
     /// 钉钉机器人
     /// </summary>
-    public interface IDingTalkMessageManager
+    public interface IDingTalkMessageManager : IUmsBaseManager
     {
         /// <summary>
         /// 发送Text消息

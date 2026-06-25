@@ -7,7 +7,7 @@ namespace Ums.Domain.Interfaces
     /// <summary>
     /// 邮件消息-直接发送
     /// </summary>
-    public interface IUmsEmailDirectMessageManager
+    public interface IUmsEmailDirectMessageManager : IUmsBaseManager
     {
         /// <summary>
         /// 直接发送邮件消息（不经过MQ）

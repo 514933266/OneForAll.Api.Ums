@@ -15,23 +15,24 @@ namespace Ums.Host.Controllers
     public class WxgzhMessageController : BaseController
     {
         private readonly IWxgzhMessageService _service;
-        public WxgzhMessageController(IWxgzhMessageService service)
+        private readonly RabbitMqConnectionConfig _rabbitMqConfig;
+        public WxgzhMessageController(IWxgzhMessageService service, RabbitMqConnectionConfig rabbitMqConfig)
         {
             _service = service;
+            _rabbitMqConfig = rabbitMqConfig;
         }
 
         /// <summary>
-        /// 发送模板消息（isSync=true时同步发送，不经过MQ）
+        /// 发送模板消息（根据RabbitMQ配置决定发送方式）
         /// </summary>
         /// <param name="form">实体</param>
-        /// <param name="isSync">是否同步发送</param>
         /// <returns>结果</returns>
         [HttpPost]
         [Route("Template")]
-        public async Task<BaseMessage> SendTemplateAsync([FromBody] WxgzhTemplateMessageForm form, [FromQuery] bool isSync = false)
+        public async Task<BaseMessage> SendTemplateAsync([FromBody] WxgzhTemplateMessageForm form)
         {
             var msg = new BaseMessage();
-            msg.ErrType = isSync
+            msg.ErrType = !_rabbitMqConfig.IsEnabled
                 ? await _service.SendTemplateDirectAsync(form)
                 : await _service.SendTemplateAsync(form);
             switch (msg.ErrType)
@@ -42,17 +43,16 @@ namespace Ums.Host.Controllers
         }
 
         /// <summary>
-        /// 发送长期订阅消息（isSync=true时同步发送，不经过MQ）
+        /// 发送长期订阅消息（根据RabbitMQ配置决定发送方式）
         /// </summary>
         /// <param name="form">实体</param>
-        /// <param name="isSync">是否同步发送</param>
         /// <returns>结果</returns>
         [HttpPost]
         [Route("Subscribe")]
-        public async Task<BaseMessage> SendSubscribeAsync([FromBody] WxgzhSubscribeMessageForm form, [FromQuery] bool isSync = false)
+        public async Task<BaseMessage> SendSubscribeAsync([FromBody] WxgzhSubscribeMessageForm form)
         {
             var msg = new BaseMessage();
-            msg.ErrType = isSync
+            msg.ErrType = !_rabbitMqConfig.IsEnabled
                 ? await _service.SendSubscribeDirectAsync(form)
                 : await _service.SendSubscribeAsync(form);
             switch (msg.ErrType)

@@ -15,7 +15,7 @@ namespace Ums.Domain.Interfaces
     /// <summary>
     /// 腾讯云-短信发送
     /// </summary>
-    public interface ITxCloudSmsManager
+    public interface ITxCloudSmsManager : IUmsBaseManager
     {
         /// <summary>
         /// 发送短信消息

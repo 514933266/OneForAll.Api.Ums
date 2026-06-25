@@ -12,7 +12,7 @@ namespace Ums.Domain.Interfaces
     /// <summary>
     /// 邮件消息
     /// </summary>
-    public interface IUmsEmailMessageManager
+    public interface IUmsEmailMessageManager : IUmsBaseManager
     {
         /// <summary>
         /// 发送邮件消息
@@ -27,5 +27,12 @@ namespace Ums.Domain.Interfaces
         /// <param name="channel">信道</param>
         /// <returns></returns>
         Task ReceiveAsync(IChannel channel);
+
+        /// <summary>
+        /// 直接发送邮件消息（不经过MQ）
+        /// </summary>
+        /// <param name="form"></param>
+        /// <returns></returns>
+        Task<BaseErrType> SendDirectAsync(UmsEmailMessageForm form);
     }
 }

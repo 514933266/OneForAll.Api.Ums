@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using OneForAll.Core;
 using Ums.Domain.Models;
+using Ums.Public.Models;
 using Ums.Application.Interfaces;
 
 namespace Ums.Host.Controllers
@@ -16,22 +17,23 @@ namespace Ums.Host.Controllers
     public class TxCloudSmsController : BaseController
     {
         private readonly ITxCloudSmsService _service;
-        public TxCloudSmsController(ITxCloudSmsService service)
+        private readonly RabbitMqConnectionConfig _rabbitMqConfig;
+        public TxCloudSmsController(ITxCloudSmsService service, RabbitMqConnectionConfig rabbitMqConfig)
         {
             _service = service;
+            _rabbitMqConfig = rabbitMqConfig;
         }
 
         /// <summary>
-        /// 发送短信（isSync=true时同步发送，不经过MQ）
+        /// 发送短信（根据RabbitMQ配置决定发送方式）
         /// </summary>
         /// <param name="form">实体</param>
-        /// <param name="isSync">是否同步发送</param>
         /// <returns>结果</returns>
         [HttpPost]
-        public async Task<BaseMessage> SendAsync([FromBody] TxCloudSmsForm form, [FromQuery] bool isSync = false)
+        public async Task<BaseMessage> SendAsync([FromBody] TxCloudSmsForm form)
         {
             var msg = new BaseMessage();
-            msg.ErrType = isSync
+            msg.ErrType = !_rabbitMqConfig.IsEnabled
                 ? await _service.SendDirectAsync(form)
                 : await _service.SendAsync(form);
             switch (msg.ErrType)

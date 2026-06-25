@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 using System;
-using Ums.Host.Models;
 using Ums.HttpService.Interfaces;
 using Ums.HttpService.Models;
+using Ums.Public.Models;
 
 namespace Ums.Host.Filters
 {

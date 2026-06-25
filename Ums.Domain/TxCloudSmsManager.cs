@@ -32,21 +32,22 @@ namespace Ums.Domain
     public class TxCloudSmsManager : UmsBaseMQManager, ITxCloudSmsManager
     {
         private readonly IConfiguration _config;
-        private readonly IUmsMessageRecordRepository _repository;
-        private readonly IUmsSmsRecordRepository _smdRepository;
+        private readonly IUmsSmsRecordRepository _smsRepository;
 
         public TxCloudSmsManager(
             ConnectionFactory mqFactory,
-            IMapper mapper,
+            IConfiguration config,
             IHttpContextAccessor httpContextAccessor,
             IUmsMessageRecordRepository repository,
-            IUmsSmsRecordRepository smdRepository,
-            IConfiguration config) : base(mqFactory, mapper, httpContextAccessor)
+            IUmsSmsRecordRepository smsRepository) : base(mqFactory, httpContextAccessor, repository)
         {
             _config = config;
-            _repository = repository;
-            _smdRepository = smdRepository;
+            _smsRepository = smsRepository;
         }
+
+        public override string QueueName => UmsQueueName.TxCloudSms;
+
+        public override string RouteKey => UmsQueueName.TxCloudSms;
 
         /// <summary>
         /// 发送Markdown消息
@@ -60,14 +61,14 @@ namespace Ums.Domain
                 MessageId = Guid.NewGuid(),
                 RequestUrl = _httpContextAccessor.HttpContext.Request.Path,
                 OriginalMessage = form.ToJson(),
-                ExChangeName = _directExchangeName,
-                QueueName = UmsQueueName.TxCloudSms,
-                RouteKey = UmsQueueName.TxCloudSms
+                ExChangeName = ExChangeName,
+                QueueName = QueueName,
+                RouteKey = RouteKey
             };
             var errType = await ResultAsync(() => _repository.AddAsync(data));
             if (errType == BaseErrType.Success)
             {
-                return await SendDirectAsync(UmsQueueName.TxCloudSms, UmsQueueName.TxCloudSms, data.ToJson());
+                return await SendToRabbitMQAsync(QueueName, RouteKey, data.ToJson());
             }
             else
             {
@@ -82,7 +83,7 @@ namespace Ums.Domain
         /// <returns></returns>
         public async Task ReceiveAsync(IChannel channel)
         {
-            await channel.QueueDeclareAsync(UmsQueueName.TxCloudSms, true, false, false);
+            await channel.QueueDeclareAsync(QueueName, true, false, false);
 
             var consumer = new AsyncEventingBasicConsumer(channel);
             consumer.ReceivedAsync += async (model, e) =>
@@ -99,7 +100,7 @@ namespace Ums.Domain
                         record.Status = UmsMessageStatusEnum.Success;
                         record.Result = "发送成功";
                         // 写入短信发送记录
-                        await _smdRepository.AddAsync(new UmsSmsRecord()
+                        await _smsRepository.AddAsync(new UmsSmsRecord()
                         {
                             ErrMsg = response.Message,
                             PlatformName = "腾讯云",
@@ -124,7 +125,7 @@ namespace Ums.Domain
                 }
                 await _repository.UpdateAsync(record);
             };
-            await channel.BasicConsumeAsync(UmsQueueName.TxCloudSms, true, consumer);
+            await channel.BasicConsumeAsync(QueueName, true, consumer);
         }
 
         /// <summary>

@@ -21,39 +21,18 @@ namespace Ums.Application
         private readonly IMapper _mapper;
         private readonly IDingTalkMessageManager _manager;
         private readonly IDingTalkDirectMessageManager _directManager;
-        private readonly IUmsNotificationConfigManager _configManager;
+        private readonly IUmsMessageDeduplicationManager _deduplicationManager;
 
         public DingTalkMessageService(
             IMapper mapper,
             IDingTalkMessageManager manager,
             IDingTalkDirectMessageManager directManager,
-            IUmsNotificationConfigManager configManager)
+            IUmsMessageDeduplicationManager deduplicationManager)
         {
             _mapper = mapper;
             _manager = manager;
             _directManager = directManager;
-            _configManager = configManager;
-        }
-
-        /// <summary>
-        /// 根据通知配置获取目标列表
-        /// </summary>
-        private async Task<(BaseErrType ErrType, List<DingTalkRobotTargetVo> Targets)> FillFromConfigAsync(DingTalkRobotMessageForm form)
-        {
-            if (!form.ClientId.IsNullOrEmpty() && !form.ConfigCode.IsNullOrEmpty())
-            {
-                var config = await _configManager.GetAsync(form.ClientId, form.ConfigCode, UmsMessageTypeEnum.DingTalkRobot);
-                if (config == null)
-                    return (BaseErrType.DataNotMatch, new List<DingTalkRobotTargetVo>());
-
-                var targets = config.TargetJson.FromJson<List<DingTalkRobotTargetVo>>();
-                if (targets == null || !targets.Any())
-                    return (BaseErrType.DataError, new List<DingTalkRobotTargetVo>());
-
-                return (BaseErrType.Success, targets);
-            }
-
-            return (BaseErrType.Success, new List<DingTalkRobotTargetVo>());
+            _deduplicationManager = deduplicationManager;
         }
 
         /// <summary>
@@ -63,22 +42,19 @@ namespace Ums.Application
         /// <returns></returns>
         public async Task<BaseErrType> SendTextAsync(DingTalkRobotMessageForm form)
         {
-            var (errType, targets) = await FillFromConfigAsync(form);
-            if (errType != BaseErrType.Success) 
-                return errType;
+            // 1. 检查去重
+            var isDuplicate = await _deduplicationManager.CheckAsync(form.Title, form.Content, UmsMessageTypeEnum.DingTalkRobot);
 
-            if (targets.Any())
+            if (isDuplicate)
             {
-                foreach (var target in targets)
-                {
-                    form.WebhookUrl = target.WebhookUrl;
-                    form.Sign = target.Sign;
-                    await _manager.SendTextAsync(form);
-                }
-                return BaseErrType.Success;
+                // 1. 仅记录消息（不发送）
+                return await _manager.RecordAsync(form);
             }
-
-            return await _manager.SendTextAsync(form);
+            else
+            {
+                // 2. 通过MQ发送消息
+                return await _manager.SendTextAsync(form);
+            }
         }
 
         /// <summary>
@@ -88,22 +64,19 @@ namespace Ums.Application
         /// <returns></returns>
         public async Task<BaseErrType> SendTextDirectAsync(DingTalkRobotMessageForm form)
         {
-            var (errType, targets) = await FillFromConfigAsync(form);
-            if (errType != BaseErrType.Success) 
-                return errType;
+            // 1. 检查去重
+            var isDuplicate = await _deduplicationManager.CheckAsync(form.Title, form.Content, UmsMessageTypeEnum.DingTalkRobot);
 
-            if (targets.Any())
+            if (isDuplicate)
             {
-                foreach (var target in targets)
-                {
-                    form.WebhookUrl = target.WebhookUrl;
-                    form.Sign = target.Sign;
-                    await _directManager.SendTextDirectAsync(form);
-                }
-                return BaseErrType.Success;
+                // 1. 仅记录消息（不发送）
+                return await _directManager.RecordAsync(form);
             }
-
-            return await _directManager.SendTextDirectAsync(form);
+            else
+            {
+                // 2. 直接发送消息
+                return await _directManager.SendTextDirectAsync(form);
+            }
         }
 
         /// <summary>
@@ -113,22 +86,19 @@ namespace Ums.Application
         /// <returns></returns>
         public async Task<BaseErrType> SendMarkdownAsync(DingTalkRobotMessageForm form)
         {
-            var (errType, targets) = await FillFromConfigAsync(form);
-            if (errType != BaseErrType.Success) 
-                return errType;
+            // 1. 检查去重
+            var isDuplicate = await _deduplicationManager.CheckAsync(form.Title, form.Content, UmsMessageTypeEnum.DingTalkRobot);
 
-            if (targets.Any())
+            if (isDuplicate)
             {
-                foreach (var target in targets)
-                {
-                    form.WebhookUrl = target.WebhookUrl;
-                    form.Sign = target.Sign;
-                    await _manager.SendMarkdownAsync(form);
-                }
-                return BaseErrType.Success;
+                // 1. 仅记录消息（不发送）
+                return await _manager.RecordAsync(form);
             }
-
-            return await _manager.SendMarkdownAsync(form);
+            else
+            {
+                // 2. 通过MQ发送消息
+                return await _manager.SendMarkdownAsync(form);
+            }
         }
 
         /// <summary>
@@ -138,22 +108,19 @@ namespace Ums.Application
         /// <returns></returns>
         public async Task<BaseErrType> SendMarkdownDirectAsync(DingTalkRobotMessageForm form)
         {
-            var (errType, targets) = await FillFromConfigAsync(form);
-            if (errType != BaseErrType.Success) 
-                return errType;
+            // 1. 检查去重
+            var isDuplicate = await _deduplicationManager.CheckAsync(form.Title, form.Content, UmsMessageTypeEnum.DingTalkRobot);
 
-            if (targets.Any())
+            if (isDuplicate)
             {
-                foreach (var target in targets)
-                {
-                    form.WebhookUrl = target.WebhookUrl;
-                    form.Sign = target.Sign;
-                    await _directManager.SendMarkdownDirectAsync(form);
-                }
-                return BaseErrType.Success;
+                // 1. 仅记录消息（不发送）
+                return await _directManager.RecordAsync(form);
             }
-
-            return await _directManager.SendMarkdownDirectAsync(form);
+            else
+            {
+                // 2. 直接发送消息
+                return await _directManager.SendMarkdownDirectAsync(form);
+            }
         }
     }
 }

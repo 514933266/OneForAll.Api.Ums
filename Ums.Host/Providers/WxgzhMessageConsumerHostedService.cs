@@ -14,9 +14,15 @@ namespace Ums.Host.Providers
         private readonly IConnection _conn;
         private readonly IChannel _channel;
         private readonly IWxgzhMessageManager _manager;
-        public WxgzhMessageConsumerHostedService(ConnectionFactory mqFactory, IWxgzhMessageManager manager)
+        private readonly IWxgzhSubscribeMessageManager _subscribeManager;
+        
+        public WxgzhMessageConsumerHostedService(
+            ConnectionFactory mqFactory, 
+            IWxgzhMessageManager manager,
+            IWxgzhSubscribeMessageManager subscribeManager)
         {
             _manager = manager;
+            _subscribeManager = subscribeManager;
             _conn = mqFactory.CreateConnectionAsync().Result;
             _channel = _conn.CreateChannelAsync().Result;
         }
@@ -24,7 +30,7 @@ namespace Ums.Host.Providers
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             await _manager.ReceiveTemplateAsync(_channel);
-            await _manager.ReceiveSubscribeAsync(_channel);
+            await _subscribeManager.ReceiveSubscribeAsync(_channel);
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)

@@ -21,34 +21,18 @@ namespace Ums.Application
         private readonly IMapper _mapper;
         private readonly IUmsEmailMessageManager _manager;
         private readonly IUmsEmailDirectMessageManager _directManager;
-        private readonly IUmsNotificationConfigManager _configManager;
+        private readonly IUmsMessageDeduplicationManager _deduplicationManager;
 
         public UmsEmailMessageService(
             IMapper mapper,
             IUmsEmailMessageManager manager,
             IUmsEmailDirectMessageManager directManager,
-            IUmsNotificationConfigManager configManager)
+            IUmsMessageDeduplicationManager deduplicationManager)
         {
             _mapper = mapper;
             _manager = manager;
             _directManager = directManager;
-            _configManager = configManager;
-        }
-
-        /// <summary>
-        /// 根据通知配置获取目标列表
-        /// </summary>
-        private async Task<(BaseErrType ErrType, List<EmailTargetVo> Targets)> FillFromConfigAsync(UmsEmailMessageForm form)
-        {
-            if (form.ClientId.IsNullOrEmpty() || form.ConfigCode.IsNullOrEmpty()) return (BaseErrType.Success, new List<EmailTargetVo>());
-
-            var config = await _configManager.GetAsync(form.ClientId, form.ConfigCode, UmsMessageTypeEnum.Email);
-            if (config == null) return (BaseErrType.DataNotFound, new List<EmailTargetVo>());
-
-            var targets = config.TargetJson.FromJson<List<EmailTargetVo>>();
-            if (targets == null || !targets.Any()) return (BaseErrType.DataError, new List<EmailTargetVo>());
-
-            return (BaseErrType.Success, targets);
+            _deduplicationManager = deduplicationManager;
         }
 
         /// <summary>
@@ -58,21 +42,19 @@ namespace Ums.Application
         /// <returns></returns>
         public async Task<BaseErrType> SendAsync(UmsEmailMessageForm form)
         {
-            var (errType, targets) = await FillFromConfigAsync(form);
-            if (errType != BaseErrType.Success) return errType;
+            // 1. 检查去重
+            var isDuplicate = await _deduplicationManager.CheckAsync(form.Subject, form.Body, UmsMessageTypeEnum.Email);
 
-            if (targets.Any())
+            if (isDuplicate)
             {
-                foreach (var target in targets)
-                {
-                    form.To = target.To;
-                    form.Cc = target.Cc;
-                    await _manager.SendAsync(form);
-                }
-                return BaseErrType.Success;
+                // 1. 仅记录消息（不发送）
+                return await _manager.RecordAsync(form);
             }
-
-            return await _manager.SendAsync(form);
+            else
+            {
+                // 2. 通过MQ发送消息
+                return await _manager.SendAsync(form);
+            }
         }
 
         /// <summary>
@@ -82,21 +64,18 @@ namespace Ums.Application
         /// <returns></returns>
         public async Task<BaseErrType> SendDirectAsync(UmsEmailMessageForm form)
         {
-            var (errType, targets) = await FillFromConfigAsync(form);
-            if (errType != BaseErrType.Success) return errType;
+            // 1. 检查去重
+            var isDuplicate = await _deduplicationManager.CheckAsync(form.Subject, form.Body, UmsMessageTypeEnum.Email);
 
-            if (targets.Any())
+            if (isDuplicate)
             {
-                foreach (var target in targets)
-                {
-                    form.To = target.To;
-                    form.Cc = target.Cc;
-                    await _directManager.SendDirectAsync(form);
-                }
-                return BaseErrType.Success;
+                // 1. 仅记录消息（不发送）
+                return await _directManager.RecordAsync(form);
             }
-
-            return await _directManager.SendDirectAsync(form);
+            else
+            {
+                return await _directManager.SendDirectAsync(form);
+            }
         }
     }
 }

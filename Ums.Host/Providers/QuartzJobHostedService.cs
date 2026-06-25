@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Ums.Host.Models;
 using Ums.HttpService.Interfaces;
 using Ums.HttpService.Models;
+using Ums.Public.Models;
 
 namespace Ums.Host.Providers
 {

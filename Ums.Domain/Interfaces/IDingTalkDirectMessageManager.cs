@@ -7,7 +7,7 @@ namespace Ums.Domain.Interfaces
     /// <summary>
     /// 钉钉机器人-直接发送
     /// </summary>
-    public interface IDingTalkDirectMessageManager
+    public interface IDingTalkDirectMessageManager : IUmsBaseManager
     {
         /// <summary>
         /// 直接发送Text消息（不经过MQ）

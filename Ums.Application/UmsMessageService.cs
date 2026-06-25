@@ -18,15 +18,18 @@ namespace Ums.Application
     {
         private readonly IMapper _mapper;
         private readonly IUmsMessageManager _manager;
-        private readonly IUmsDirectMessageManager _directManager;
+        private readonly IUmsMessageDirectManager _directManager;
+        private readonly IUmsMessageDeduplicationManager _deduplicationManager;
         public UmsMessageService(
             IMapper mapper,
             IUmsMessageManager manager,
-            IUmsDirectMessageManager directManager)
+            IUmsMessageDirectManager directManager,
+            IUmsMessageDeduplicationManager deduplicationManager)
         {
             _mapper = mapper;
             _manager = manager;
             _directManager = directManager;
+            _deduplicationManager = deduplicationManager;
         }
 
         /// <summary>
@@ -36,7 +39,19 @@ namespace Ums.Application
         /// <returns></returns>
         public async Task<BaseErrType> SendSystemAsync(UmsMessageForm form)
         {
-            return await _manager.SendSystemAsync(form);
+            // 1. 检查去重
+            var isDuplicate = await _deduplicationManager.CheckAsync(form.Title, form.Content, form.Type);
+
+            if (isDuplicate)
+            {
+                // 1. 仅记录消息（不发送）
+                return await _manager.RecordAsync(form);
+            }
+            else
+            {
+                // 2. 通过MQ发送消息
+                return await _manager.SendSystemAsync(form);
+            }
         }
 
         /// <summary>
@@ -46,7 +61,19 @@ namespace Ums.Application
         /// <returns></returns>
         public async Task<BaseErrType> SendSystemDirectAsync(UmsMessageForm form)
         {
-            return await _directManager.SendSystemDirectAsync(form);
+            // 1. 检查去重
+            var isDuplicate = await _deduplicationManager.CheckAsync(form.Title, form.Content, form.Type);
+
+            if (isDuplicate)
+            {
+                // 1. 仅记录消息（不发送）
+                return await _directManager.RecordAsync(form);
+            }
+            else
+            {
+                // 2. 直接发送消息
+                return await _directManager.SendSystemDirectAsync(form);
+            }
         }
     }
 }

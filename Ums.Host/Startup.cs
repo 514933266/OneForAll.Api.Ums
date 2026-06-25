@@ -147,6 +147,9 @@ namespace Ums.Host
             services.AddSingleton<IUploader, Uploader>();
             services.AddScoped<ITenantProvider, TenantProvider>();
 
+            // 注册内存缓存（用于消息去重）
+            services.AddMemoryCache();
+
             #endregion
 
             #region Mvc
@@ -209,6 +212,8 @@ namespace Ums.Host
 
             var rabbitmqConfig = Configuration.GetSection("RabbitMQ").Get<RabbitMqConnectionConfig>();
 
+            // 注册配置为单例
+            services.AddSingleton(rabbitmqConfig);
 
             // 根据配置构建 ConnectionFactory 并注册
             var factory = new ConnectionFactory()
@@ -256,6 +261,11 @@ namespace Ums.Host
             builder.RegisterAssemblyTypes(Assembly.Load(BASE_DOMAIN))
                 .Where(t => t.Name.EndsWith("Manager"))
                 .AsImplementedInterfaces();
+
+            // 注册消息去重管理器
+            builder.RegisterType<Ums.Domain.UmsMessageDeduplicationManager>()
+                .As<Ums.Domain.Interfaces.IUmsMessageDeduplicationManager>()
+                .InstancePerLifetimeScope();
 
             // 仓储层
             builder.Register(p =>

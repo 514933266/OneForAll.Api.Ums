@@ -34,12 +34,19 @@ namespace Ums.HttpService
         /// <returns></returns>
         public async Task AddAsync(SysGlobalExceptionLogRequest form)
         {
-            form.CreateTime = DateTime.UtcNow;
-
-            var client = GetHttpClient(_config.SysLog);
-            if (client != null && client.BaseAddress != null)
+            try
             {
-                await client.PostAsync("api/SysGlobalExceptionLogs", form, new JsonMediaTypeFormatter());
+                form.CreateTime = DateTime.UtcNow;
+
+                var client = GetHttpClient(_config.SysLog);
+                if (client != null && client.BaseAddress != null)
+                {
+                    await client.PostAsync("api/SysGlobalExceptionLogs", form, new JsonMediaTypeFormatter());
+                }
+            }
+            catch
+            {
+                // 忽略异常，记录日志失败不影响主流程
             }
         }
     }

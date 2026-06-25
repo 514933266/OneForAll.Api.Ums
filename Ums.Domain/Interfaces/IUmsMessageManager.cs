@@ -12,12 +12,12 @@ namespace Ums.Domain.Interfaces
     /// <summary>
     /// 站内信
     /// </summary>
-    public interface IUmsMessageManager
+    public interface IUmsMessageManager : IUmsBaseManager
     {
         /// <summary>
         /// 发送系统通知消息
         /// </summary>
-        /// <param name="form"></param>
+        /// <param name="form">消息表单</param>
         /// <returns></returns>
         Task<BaseErrType> SendSystemAsync(UmsMessageForm form);
 

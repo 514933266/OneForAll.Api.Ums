@@ -25,18 +25,21 @@ namespace Ums.Domain
     public class WxmpMessageManager : UmsBaseMQManager, IWxmpMessageManager
     {
         private readonly IMapper _mapper;
-        private readonly IUmsMessageRecordRepository _repository;
         private readonly IWxmpHttpService _httpService;
+
+        public override string QueueName => UmsQueueName.WxmpSubscribeTemplate;
+
+        public override string RouteKey => UmsQueueName.WxmpSubscribeTemplate;
+
         public WxmpMessageManager(
             ConnectionFactory mqFactory,
             IMapper mapper,
             IHttpContextAccessor httpContextAccessor,
             IUmsMessageRecordRepository repository,
-            IWxmpHttpService httpService) : base(mqFactory, mapper, httpContextAccessor)
+            IWxmpHttpService httpService) : base(mqFactory, httpContextAccessor, repository)
         {
             _mapper = mapper;
             _httpService = httpService;
-            _repository = repository;
         }
 
         /// <summary>
@@ -51,14 +54,14 @@ namespace Ums.Domain
                 MessageId = Guid.NewGuid(),
                 RequestUrl = _httpContextAccessor.HttpContext.Request.Path,
                 OriginalMessage = form.ToJson(),
-                ExChangeName = _directExchangeName,
-                QueueName = UmsQueueName.WxmpSubscribeTemplate,
-                RouteKey = UmsQueueName.WxmpSubscribeTemplate
+                ExChangeName = ExChangeName,
+                QueueName = QueueName,
+                RouteKey = RouteKey
             };
             var errType = await ResultAsync(() => _repository.AddAsync(data));
             if (errType == BaseErrType.Success)
             {
-                return await SendDirectAsync(UmsQueueName.WxmpSubscribeTemplate, UmsQueueName.WxmpSubscribeTemplate, data.ToJson());
+                return await SendToRabbitMQAsync(QueueName, RouteKey, data.ToJson());
             }
             else
             {
@@ -73,7 +76,7 @@ namespace Ums.Domain
         /// <returns></returns>
         public async Task ReceiveSubscribeTemplateAsync(IChannel channel)
         {
-            await channel.QueueDeclareAsync(UmsQueueName.WxmpSubscribeTemplate, true, false, false);
+            await channel.QueueDeclareAsync(QueueName, true, false, false);
 
             var consumer = new AsyncEventingBasicConsumer(channel);
             consumer.ReceivedAsync += async (model, e) =>
@@ -104,7 +107,7 @@ namespace Ums.Domain
                 }
                 await _repository.UpdateAsync(record);
             };
-            await channel.BasicConsumeAsync(UmsQueueName.WxmpSubscribeTemplate, true, consumer);
+            await channel.BasicConsumeAsync(QueueName, true, consumer);
         }
     }
 }

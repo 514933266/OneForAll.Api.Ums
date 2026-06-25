@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using OneForAll.Core;
 using OneForAll.Core.Extension;
@@ -23,21 +24,25 @@ namespace Ums.Domain
     /// <summary>
     /// 腾讯云短信-直接发送
     /// </summary>
-    public class TxCloudSmsDirectManager : BaseManager, ITxCloudSmsDirectManager
+    public class TxCloudSmsDirectManager : UmsBaseManager, ITxCloudSmsDirectManager
     {
         private readonly IConfiguration _config;
-        private readonly IUmsMessageRecordRepository _repository;
-        private readonly IUmsSmsRecordRepository _smdRepository;
+        private readonly IUmsSmsRecordRepository _smsRepository;
+
+
+        public override string ExChangeName => "direct";
+
+        public override string QueueName => UmsQueueName.TxCloudSms;
+
+        public override string RouteKey => "direct";
 
         public TxCloudSmsDirectManager(
+            IMapper mapper,
             IHttpContextAccessor httpContextAccessor,
             IUmsMessageRecordRepository repository,
-            IUmsSmsRecordRepository smdRepository,
-            IConfiguration config) : base(httpContextAccessor)
+            IUmsSmsRecordRepository smsRepository) : base(httpContextAccessor, repository)
         {
-            _config = config;
-            _repository = repository;
-            _smdRepository = smdRepository;
+            _smsRepository = smsRepository;
         }
 
         /// <summary>
@@ -52,9 +57,9 @@ namespace Ums.Domain
                 MessageId = Guid.NewGuid(),
                 RequestUrl = _httpContextAccessor.HttpContext.Request.Path,
                 OriginalMessage = form.ToJson(),
-                ExChangeName = "",
-                QueueName = UmsQueueName.TxCloudSms,
-                RouteKey = ""
+                ExChangeName = ExChangeName,
+                QueueName = QueueName,
+                RouteKey = RouteKey
             };
             var errType = await ResultAsync(() => _repository.AddAsync(data));
             if (errType != BaseErrType.Success) return BaseErrType.ServerError;
@@ -66,7 +71,7 @@ namespace Ums.Domain
                 {
                     data.Status = UmsMessageStatusEnum.Success;
                     data.Result = "发送成功";
-                    await _smdRepository.AddAsync(new UmsSmsRecord()
+                    await _smsRepository.AddAsync(new UmsSmsRecord()
                     {
                         ErrMsg = response.Message,
                         PlatformName = "腾讯云",

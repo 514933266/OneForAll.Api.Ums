@@ -1,10 +1,11 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using OneForAll.Core;
 using OneForAll.Core.Extension;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Ums.Domain.Entities;
@@ -12,39 +13,41 @@ using Ums.Domain.Enums;
 using Ums.Domain.Interfaces;
 using Ums.Domain.Models;
 using Ums.Domain.Repositorys;
+using Ums.HttpService.Interfaces;
+using Ums.HttpService.Models;
 using Ums.Public.Models;
 
 namespace Ums.Domain
 {
     /// <summary>
-    /// 站内信
+    /// 微信公众号订阅消息推送
     /// </summary>
-    public class UmsMessageManager : UmsBaseMQManager, IUmsMessageManager
+    public class WxgzhSubscribeMessageManager : UmsBaseMQManager, IWxgzhSubscribeMessageManager
     {
         private readonly IMapper _mapper;
-        private readonly IUmsMessageRepository _umsRepository;
+        private readonly IWxgzhHttpService _httpService;
 
-        public override string QueueName => UmsQueueName.System;
+        public override string QueueName => UmsQueueName.WxgzhSubscribe;
 
-        public override string RouteKey => UmsQueueName.System;
+        public override string RouteKey => UmsQueueName.WxgzhSubscribe;
 
-        public UmsMessageManager(
+        public WxgzhSubscribeMessageManager(
             ConnectionFactory mqFactory,
             IMapper mapper,
             IHttpContextAccessor httpContextAccessor,
             IUmsMessageRecordRepository repository,
-            IUmsMessageRepository umsRepository) : base(mqFactory, httpContextAccessor, repository)
+            IWxgzhHttpService httpService) : base(mqFactory, httpContextAccessor, repository)
         {
             _mapper = mapper;
-            _umsRepository = umsRepository;
+            _httpService = httpService;
         }
 
         /// <summary>
-        /// 发送系统通知消息
+        /// 发送长期订阅消息
         /// </summary>
         /// <param name="form"></param>
         /// <returns></returns>
-        public async Task<BaseErrType> SendSystemAsync(UmsMessageForm form)
+        public async Task<BaseErrType> SendSubscribeAsync(WxgzhSubscribeMessageForm form)
         {
             var data = new UmsMessageRecord()
             {
@@ -67,11 +70,11 @@ namespace Ums.Domain
         }
 
         /// <summary>
-        /// 接收系统通知消息
+        /// 接收长期订阅消息
         /// </summary>
         /// <param name="channel">信道</param>
         /// <returns></returns>
-        public async Task ReceiveSystemAsync(IChannel channel)
+        public async Task ReceiveSubscribeAsync(IChannel channel)
         {
             await channel.QueueDeclareAsync(QueueName, true, false, false);
 
@@ -80,20 +83,26 @@ namespace Ums.Domain
             {
                 var msgStr = Encoding.UTF8.GetString(e.Body.ToArray());
                 var record = msgStr.FromJson<UmsMessageRecord>();
-                var msg = record.OriginalMessage.FromJson<UmsMessageForm>();
-
-                var exists = await _umsRepository.CountAsync(w => w.Id == msg.Id && w.ToAccountId == msg.ToAccountId) > 0;
-                if (!exists)
+                try
                 {
-                    var item = _mapper.Map<UmsMessageForm, UmsMessage>(msg);
-                    await _umsRepository.AddAsync(item);
-                    record.Status = UmsMessageStatusEnum.Success;
-                    record.Result = "发送成功";
+                    var msg = record.OriginalMessage.FromJson<WxgzhSubscribeMessageForm>();
+                    var request = _mapper.Map<WxgzhSubscribeMessageRequest>(msg);
+                    var response = _httpService.SendSubscribeAsync(request, msg.AccessToken).Result;
+                    if (response.Status)
+                    {
+                        record.Status = UmsMessageStatusEnum.Success;
+                        record.Result = "发送成功";
+                    }
+                    else
+                    {
+                        record.Status = UmsMessageStatusEnum.Fail;
+                        record.Result = "发送失败：".Append(response.Message);
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    record.Status = UmsMessageStatusEnum.Fail;
-                    record.Result = "发送失败：数据不存在";
+                    record.Status = UmsMessageStatusEnum.Error;
+                    record.Result = "发送异常：".Append(ex.Message);
                 }
                 await _repository.UpdateAsync(record);
             };

@@ -34,6 +34,16 @@ namespace Ums.Domain.Enums
         /// <summary>
         /// 邮件通知
         /// </summary>
-        Email = 4
+        Email = 4,
+
+        /// <summary>
+        /// 微信公众号模板消息
+        /// </summary>
+        WxgzhTemplate = 5,
+
+        /// <summary>
+        /// 微信公众号订阅消息
+        /// </summary>
+        WxgzhSubscribe = 6,
     }
 }

@@ -18,21 +18,25 @@ namespace Ums.Domain
     /// <summary>
     /// 钉钉机器人-直接发送
     /// </summary>
-    public class DingTalkDirectMessageManager : BaseManager, IDingTalkDirectMessageManager
+    public class DingTalkDirectMessageManager : UmsBaseManager, IDingTalkDirectMessageManager
     {
         private readonly IMapper _mapper;
         private readonly IDingTalkHttpService _httpService;
-        private readonly IUmsMessageRecordRepository _repository;
+
+        public override string ExChangeName => "direct";
+
+        public override string QueueName => UmsQueueName.DingTalkRobot;
+
+        public override string RouteKey => "direct";
 
         public DingTalkDirectMessageManager(
             IMapper mapper,
             IHttpContextAccessor httpContextAccessor,
             IUmsMessageRecordRepository repository,
-            IDingTalkHttpService httpService) : base(httpContextAccessor)
+            IDingTalkHttpService httpService) : base(httpContextAccessor, repository)
         {
             _mapper = mapper;
             _httpService = httpService;
-            _repository = repository;
         }
 
         /// <summary>
@@ -47,9 +51,9 @@ namespace Ums.Domain
                 MessageId = Guid.NewGuid(),
                 RequestUrl = _httpContextAccessor.HttpContext.Request.Path,
                 OriginalMessage = form.ToJson(),
-                ExChangeName = "direct",
-                QueueName = "direct",
-                RouteKey = "direct"
+                ExChangeName = ExChangeName,
+                QueueName = QueueName,
+                RouteKey = RouteKey
             };
             var errType = await ResultAsync(() => _repository.AddAsync(data));
             if (errType != BaseErrType.Success) return BaseErrType.ServerError;
@@ -90,9 +94,9 @@ namespace Ums.Domain
                 MessageId = Guid.NewGuid(),
                 RequestUrl = _httpContextAccessor.HttpContext.Request.Path,
                 OriginalMessage = form.ToJson(),
-                ExChangeName = "",
-                QueueName = UmsQueueName.DingTalkRobot,
-                RouteKey = ""
+                ExChangeName = ExChangeName,
+                QueueName = QueueName,
+                RouteKey = RouteKey
             };
             var errType = await ResultAsync(() => _repository.AddAsync(data));
             if (errType != BaseErrType.Success) return BaseErrType.ServerError;

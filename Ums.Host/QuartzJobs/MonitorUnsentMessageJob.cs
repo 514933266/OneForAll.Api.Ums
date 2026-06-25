@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 using Ums.Domain;
 using Ums.Domain.Interfaces;
 using Ums.Domain.Repositorys;
-using Ums.Host.Models;
 using Ums.HttpService.Interfaces;
 using Ums.HttpService.Models;
+using Ums.Public.Models;
 
 namespace Ums.Host.QuartzJobs
 {
@@ -50,7 +50,7 @@ namespace Ums.Host.QuartzJobs
                 {
                     foreach (var item in data)
                     {
-                        var errType = await _mqManager.SendDirectAsync(item.QueueName, item.RouteKey, item.ToJson());
+                        var errType = await _mqManager.SendToRabbitMQAsync(item.QueueName, item.RouteKey, item.ToJson());
 
                         if (errType == BaseErrType.Success)
                             effected++;

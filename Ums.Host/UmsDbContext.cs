@@ -16,6 +16,8 @@ namespace Ums.Host
         public virtual DbSet<UmsMessageRecord> UmsMessageRecord { get; set; }
         public virtual DbSet<UmsSmsRecord> UmsSmsRecord { get; set; }
         public virtual DbSet<UmsNotificationConfig> UmsNotificationConfig { get; set; }
+        public virtual DbSet<UmsDeduplicationConfig> UmsDeduplicationConfig { get; set; }
+        public virtual DbSet<UmsDeduplicationRecord> UmsDeduplicationRecord { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -40,6 +42,18 @@ namespace Ums.Host
             modelBuilder.Entity<UmsNotificationConfig>(entity =>
             {
                 entity.ToTable("ums_notification_config");
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
+            });
+
+            modelBuilder.Entity<UmsDeduplicationConfig>(entity =>
+            {
+                entity.ToTable("ums_deduplication_config");
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
+            });
+
+            modelBuilder.Entity<UmsDeduplicationRecord>(entity =>
+            {
+                entity.ToTable("ums_deduplication_record");
                 entity.Property(e => e.Id).ValueGeneratedOnAdd();
             });
         }

@@ -7,7 +7,7 @@ namespace Ums.Domain.Interfaces
     /// <summary>
     /// 微信小程序-直接发送
     /// </summary>
-    public interface IWxmpDirectMessageManager
+    public interface IWxmpDirectMessageManager : IUmsBaseManager
     {
         /// <summary>
         /// 直接发送模板消息（不经过MQ）

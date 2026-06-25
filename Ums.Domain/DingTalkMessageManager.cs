@@ -26,18 +26,20 @@ namespace Ums.Domain
     {
         private readonly IMapper _mapper;
         private readonly IDingTalkHttpService _httpService;
-        private readonly IUmsMessageRecordRepository _repository;
+
+        public override string QueueName => UmsQueueName.DingTalkRobot;
+
+        public override string RouteKey => UmsQueueName.DingTalkRobot;
 
         public DingTalkMessageManager(
             ConnectionFactory mqFactory,
             IMapper mapper,
             IHttpContextAccessor httpContextAccessor,
             IUmsMessageRecordRepository repository,
-            IDingTalkHttpService httpService) : base(mqFactory, mapper, httpContextAccessor)
+            IDingTalkHttpService httpService) : base(mqFactory, httpContextAccessor, repository)
         {
             _mapper = mapper;
             _httpService = httpService;
-            _repository = repository;
         }
 
         /// <summary>
@@ -52,14 +54,14 @@ namespace Ums.Domain
                 MessageId = Guid.NewGuid(),
                 RequestUrl = _httpContextAccessor.HttpContext.Request.Path,
                 OriginalMessage = form.ToJson(),
-                ExChangeName = _directExchangeName,
-                QueueName = UmsQueueName.DingTalkRobot,
-                RouteKey = UmsQueueName.DingTalkRobot
+                ExChangeName = ExChangeName,
+                QueueName = QueueName,
+                RouteKey = RouteKey
             };
             var errType = await ResultAsync(() => _repository.AddAsync(data));
             if (errType == BaseErrType.Success)
             {
-                return await SendDirectAsync(UmsQueueName.DingTalkRobot, UmsQueueName.DingTalkRobot, data.ToJson());
+                return await SendToRabbitMQAsync(UmsQueueName.DingTalkRobot, UmsQueueName.DingTalkRobot, data.ToJson());
             }
             else
             {
@@ -79,14 +81,14 @@ namespace Ums.Domain
                 MessageId = Guid.NewGuid(),
                 RequestUrl = _httpContextAccessor.HttpContext.Request.Path,
                 OriginalMessage = form.ToJson(),
-                ExChangeName = _directExchangeName,
-                QueueName = UmsQueueName.DingTalkRobot,
-                RouteKey = UmsQueueName.DingTalkRobot
+                ExChangeName = ExChangeName,
+                QueueName = QueueName,
+                RouteKey = RouteKey
             };
             var errType = await ResultAsync(() => _repository.AddAsync(data));
             if (errType == BaseErrType.Success)
             {
-                return await SendDirectAsync(UmsQueueName.DingTalkRobot, UmsQueueName.DingTalkRobot, data.ToJson());
+                return await SendToRabbitMQAsync(UmsQueueName.DingTalkRobot, UmsQueueName.DingTalkRobot, data.ToJson());
             }
             else
             {
@@ -101,7 +103,7 @@ namespace Ums.Domain
         /// <returns></returns>
         public async Task ReceiveTextAsync(IChannel channel)
         {
-            await channel.QueueDeclareAsync(UmsQueueName.DingTalkRobot, true, false, false);
+            await channel.QueueDeclareAsync(QueueName, true, false, false);
 
             var consumer = new AsyncEventingBasicConsumer(channel);
             consumer.ReceivedAsync += async (model, e) =>
@@ -132,7 +134,7 @@ namespace Ums.Domain
                 }
                await _repository.UpdateAsync(record);
             };
-            await channel.BasicConsumeAsync(UmsQueueName.DingTalkRobot, true, consumer);
+            await channel.BasicConsumeAsync(QueueName, true, consumer);
         }
 
         /// <summary>
@@ -142,7 +144,7 @@ namespace Ums.Domain
         /// <returns></returns>
         public async Task ReceiveMarkdownAsync(IChannel channel)
         {
-            await channel.QueueDeclareAsync(UmsQueueName.DingTalkRobot, true, false, false);
+            await channel.QueueDeclareAsync(QueueName, true, false, false);
 
             var consumer = new AsyncEventingBasicConsumer(channel);
             consumer.ReceivedAsync += async (model, e) =>
@@ -173,7 +175,7 @@ namespace Ums.Domain
                 }
                 await _repository.UpdateAsync(record);
             };
-            await channel.BasicConsumeAsync(UmsQueueName.DingTalkRobot, true, consumer);
+            await channel.BasicConsumeAsync(QueueName, true, consumer);
         }
     }
 }

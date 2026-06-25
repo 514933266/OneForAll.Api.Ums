@@ -2,9 +2,9 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
 using OneForAll.Core;
 using Ums.Domain.Models;
+using Ums.Public.Models;
 using Ums.Application.Interfaces;
 
 namespace Ums.Host.Controllers
@@ -16,23 +16,24 @@ namespace Ums.Host.Controllers
     public class DingTalkMessagesController : BaseController
     {
         private readonly IDingTalkMessageService _service;
-        public DingTalkMessagesController(IDingTalkMessageService service)
+        private readonly RabbitMqConnectionConfig _rabbitMqConfig;
+        public DingTalkMessagesController(IDingTalkMessageService service, RabbitMqConnectionConfig rabbitMqConfig)
         {
             _service = service;
+            _rabbitMqConfig = rabbitMqConfig;
         }
 
         /// <summary>
-        /// 发送Text消息（isSync=true时同步发送，不经过MQ）
+        /// 发送Text消息（根据RabbitMQ配置决定发送方式）
         /// </summary>
         /// <param name="form">实体</param>
-        /// <param name="isSync">是否同步发送</param>
         /// <returns>结果</returns>
         [HttpPost]
         [Route("Robot/Text")]
-        public async Task<BaseMessage> SendTextAsync([FromBody] DingTalkRobotMessageForm form, [FromQuery] bool isSync = false)
+        public async Task<BaseMessage> SendTextAsync([FromBody] DingTalkRobotMessageForm form)
         {
             var msg = new BaseMessage();
-            msg.ErrType = isSync
+            msg.ErrType = !_rabbitMqConfig.IsEnabled
                 ? await _service.SendTextDirectAsync(form)
                 : await _service.SendTextAsync(form);
             switch (msg.ErrType)
@@ -49,17 +50,16 @@ namespace Ums.Host.Controllers
         }
 
         /// <summary>
-        /// 发送Markdown消息（isSync=true时同步发送，不经过MQ）
+        /// 发送Markdown消息（根据RabbitMQ配置决定发送方式）
         /// </summary>
         /// <param name="form">实体</param>
-        /// <param name="isSync">是否同步发送</param>
         /// <returns>结果</returns>
         [HttpPost]
         [Route("Robot/Markdown")]
-        public async Task<BaseMessage> SendMarkdownAsync([FromBody] DingTalkRobotMessageForm form, [FromQuery] bool isSync = false)
+        public async Task<BaseMessage> SendMarkdownAsync([FromBody] DingTalkRobotMessageForm form)
         {
             var msg = new BaseMessage();
-            msg.ErrType = isSync
+            msg.ErrType = !_rabbitMqConfig.IsEnabled
                 ? await _service.SendMarkdownDirectAsync(form)
                 : await _service.SendMarkdownAsync(form);
             switch (msg.ErrType)

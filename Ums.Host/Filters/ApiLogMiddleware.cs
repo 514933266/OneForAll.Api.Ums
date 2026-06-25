@@ -12,6 +12,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using OneForAll.Core.OAuth;
+using Ums.Public.Models;
 
 namespace Ums.Host.Filters
 {

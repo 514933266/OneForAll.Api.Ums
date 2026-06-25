@@ -18,21 +18,25 @@ namespace Ums.Domain
     /// <summary>
     /// 微信公众号-直接发送
     /// </summary>
-    public class WxgzhDirectMessageManager : BaseManager, IWxgzhDirectMessageManager
+    public class WxgzhDirectMessageManager : UmsBaseManager, IWxgzhDirectMessageManager
     {
         private readonly IMapper _mapper;
-        private readonly IUmsMessageRecordRepository _repository;
         private readonly IWxgzhHttpService _httpService;
+
+        public override string ExChangeName => "direct";
+
+        public override string QueueName => UmsQueueName.WxgzhTemplate;
+
+        public override string RouteKey => "direct";
 
         public WxgzhDirectMessageManager(
             IMapper mapper,
             IHttpContextAccessor httpContextAccessor,
             IUmsMessageRecordRepository repository,
-            IWxgzhHttpService httpService) : base(httpContextAccessor)
+            IWxgzhHttpService httpService) : base(httpContextAccessor, repository)
         {
             _mapper = mapper;
             _httpService = httpService;
-            _repository = repository;
         }
 
         /// <summary>
@@ -47,9 +51,9 @@ namespace Ums.Domain
                 MessageId = Guid.NewGuid(),
                 RequestUrl = _httpContextAccessor.HttpContext.Request.Path,
                 OriginalMessage = form.ToJson(),
-                ExChangeName = "",
-                QueueName = UmsQueueName.WxgzhTemplate,
-                RouteKey = ""
+                ExChangeName = ExChangeName,
+                QueueName = QueueName,
+                RouteKey = RouteKey
             };
             var errType = await ResultAsync(() => _repository.AddAsync(data));
             if (errType != BaseErrType.Success) return BaseErrType.ServerError;
@@ -58,49 +62,6 @@ namespace Ums.Domain
             {
                 var request = _mapper.Map<WxgzhTemplateMessageRequest>(form);
                 var response = await _httpService.SendTemplateAsync(request, form.AccessToken);
-                if (response.Status)
-                {
-                    data.Status = UmsMessageStatusEnum.Success;
-                    data.Result = "发送成功";
-                }
-                else
-                {
-                    data.Status = UmsMessageStatusEnum.Fail;
-                    data.Result = "发送失败：".Append(response.Message);
-                }
-            }
-            catch (Exception ex)
-            {
-                data.Status = UmsMessageStatusEnum.Error;
-                data.Result = "发送异常：".Append(ex.Message);
-            }
-            await _repository.UpdateAsync(data);
-            return data.Status == UmsMessageStatusEnum.Success ? BaseErrType.Success : BaseErrType.Fail;
-        }
-
-        /// <summary>
-        /// 直接发送长期订阅消息（不经过MQ）
-        /// </summary>
-        /// <param name="form"></param>
-        /// <returns></returns>
-        public async Task<BaseErrType> SendSubscribeDirectAsync(WxgzhSubscribeMessageForm form)
-        {
-            var data = new UmsMessageRecord()
-            {
-                MessageId = Guid.NewGuid(),
-                RequestUrl = _httpContextAccessor.HttpContext.Request.Path,
-                OriginalMessage = form.ToJson(),
-                ExChangeName = "",
-                QueueName = UmsQueueName.WxgzhSubscribe,
-                RouteKey = ""
-            };
-            var errType = await ResultAsync(() => _repository.AddAsync(data));
-            if (errType != BaseErrType.Success) return BaseErrType.ServerError;
-
-            try
-            {
-                var request = _mapper.Map<WxgzhSubscribeMessageRequest>(form);
-                var response = await _httpService.SendSubscribeAsync(request, form.AccessToken);
                 if (response.Status)
                 {
                     data.Status = UmsMessageStatusEnum.Success;

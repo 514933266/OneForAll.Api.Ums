@@ -12,7 +12,7 @@ namespace Ums.Domain.Interfaces
     /// <summary>
     /// 企业微信
     /// </summary>
-    public interface IWxqyMessageManager
+    public interface IWxqyMessageManager : IUmsBaseManager
     {
         /// <summary>
         /// 发送Text消息

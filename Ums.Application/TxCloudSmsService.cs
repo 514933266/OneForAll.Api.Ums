@@ -22,14 +22,18 @@ namespace Ums.Application
         private readonly IMapper _mapper;
         private readonly ITxCloudSmsManager _manager;
         private readonly ITxCloudSmsDirectManager _directManager;
+        private readonly IUmsMessageDeduplicationManager _deduplicationManager;
+        
         public TxCloudSmsService(
             IMapper mapper,
             ITxCloudSmsManager manager,
-            ITxCloudSmsDirectManager directManager)
+            ITxCloudSmsDirectManager directManager,
+            IUmsMessageDeduplicationManager deduplicationManager)
         {
             _mapper = mapper;
             _manager = manager;
             _directManager = directManager;
+            _deduplicationManager = deduplicationManager;
         }
 
         /// <summary>
@@ -39,7 +43,20 @@ namespace Ums.Application
         /// <returns></returns>
         public async Task<BaseErrType> SendAsync(TxCloudSmsForm form)
         {
-            return await _manager.SendAsync(form);
+            // 1. 检查去重（使用TemplateId + PhoneNumber作为去重key）
+            var dedupKey = $"{form.TemplateId}_{form.PhoneNumber}";
+            var isDuplicate = await _deduplicationManager.CheckAsync(dedupKey, form.Content, UmsMessageTypeEnum.Default);
+
+            if (isDuplicate)
+            {
+                // 1. 仅记录消息（不发送）
+                return await _manager.RecordAsync(form);
+            }
+            else
+            {
+                // 2. 通过MQ发送消息
+                return await _manager.SendAsync(form);
+            }
         }
 
         /// <summary>
@@ -49,7 +66,20 @@ namespace Ums.Application
         /// <returns></returns>
         public async Task<BaseErrType> SendDirectAsync(TxCloudSmsForm form)
         {
-            return await _directManager.SendDirectAsync(form);
+            // 1. 检查去重（使用TemplateId + PhoneNumber作为去重key）
+            var dedupKey = $"{form.TemplateId}_{form.PhoneNumber}";
+            var isDuplicate = await _deduplicationManager.CheckAsync(dedupKey, form.Content, UmsMessageTypeEnum.Default);
+
+            if (isDuplicate)
+            {
+                // 1. 仅记录消息（不发送）
+                return await _directManager.RecordAsync(form);
+            }
+            else
+            {
+                // 2. 直接发送消息
+                return await _directManager.SendDirectAsync(form);
+            }
         }
     }
 }

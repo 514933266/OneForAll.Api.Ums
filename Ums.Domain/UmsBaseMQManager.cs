@@ -8,23 +8,32 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Ums.Domain.Repositorys;
+using Ums.Public.Models;
 
 namespace Ums.Domain
 {
     /// <summary>
     /// 消息队列
     /// </summary>
-    public class UmsBaseMQManager : BaseManager
+    public class UmsBaseMQManager : UmsBaseManager
     {
         private static IConnection _mqConn;
         private static readonly SemaphoreSlim _connLock = new SemaphoreSlim(1, 1);
         private readonly ConnectionFactory _mqFactory;
         protected readonly string _directExchangeName = "direct.ums.exchange";
 
+        public override string ExChangeName => _directExchangeName;
+
+        public override string QueueName => "direct.ums.queue";
+
+        public override string RouteKey => "direct.ums.route";
+
+
         public UmsBaseMQManager(
             ConnectionFactory mqFactory,
-            IMapper mapper,
-            IHttpContextAccessor httpContextAccessor) : base(httpContextAccessor)
+            IHttpContextAccessor httpContextAccessor,
+            IUmsMessageRecordRepository repository) : base(httpContextAccessor, repository)
         {
             _mqFactory = mqFactory;
         }
@@ -60,7 +69,7 @@ namespace Ums.Domain
         /// <param name="routeKey">路由</param>
         /// <param name="msg">消息json</param>
         /// <returns></returns>
-        public async Task<BaseErrType> SendDirectAsync(string queueName, string routeKey, string msg)
+        public async Task<BaseErrType> SendToRabbitMQAsync(string queueName, string routeKey, string msg)
         {
             if (_mqFactory == null)
                 throw new InvalidOperationException("RabbitMQ未启用");
