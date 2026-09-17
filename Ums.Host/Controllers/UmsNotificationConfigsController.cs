@@ -3,11 +3,9 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using OneForAll.Core;
-using OneForAll.Core.OAuth;
 using Ums.Application.Dtos;
 using Ums.Application.Interfaces;
 using Ums.Domain.Models;
-using Ums.Host.Filters;
 
 namespace Ums.Host.Controllers
 {
@@ -15,7 +13,7 @@ namespace Ums.Host.Controllers
     /// 消息通知配置
     /// </summary>
     [Route("api/[controller]")]
-    [Authorize(Roles = UserRoleType.Admin)]
+    [AllowAnonymous]
     public class UmsNotificationConfigsController : BaseController
     {
         private readonly IUmsNotificationConfigService _service;
@@ -34,7 +32,6 @@ namespace Ums.Host.Controllers
         /// <returns>分页</returns>
         [HttpGet]
         [Route("{pageIndex}/{pageSize}")]
-        [CheckPermission(Action = ConstPermission.EnterView)]
         public async Task<PageList<UmsNotificationConfigDto>> GetPageAsync(
             int pageIndex,
             int pageSize,
@@ -49,7 +46,6 @@ namespace Ums.Host.Controllers
         /// <param name="form">表单</param>
         /// <returns>结果</returns>
         [HttpPost]
-        [CheckPermission(Action = ConstPermission.EnterView)]
         public async Task<BaseMessage> AddAsync([FromBody] UmsNotificationConfigForm form)
         {
             var msg = new BaseMessage();
@@ -69,7 +65,6 @@ namespace Ums.Host.Controllers
         /// <returns>结果</returns>
         [HttpPut]
         [Route("{id}")]
-        [CheckPermission(Action = ConstPermission.EnterView)]
         public async Task<BaseMessage> UpdateAsync(Guid id, [FromBody] UmsNotificationConfigForm form)
         {
             var msg = new BaseMessage();
@@ -89,7 +84,6 @@ namespace Ums.Host.Controllers
         /// <returns>结果</returns>
         [HttpDelete]
         [Route("{id}")]
-        [CheckPermission(Action = ConstPermission.EnterView)]
         public async Task<BaseMessage> DeleteAsync(Guid id)
         {
             var msg = new BaseMessage();

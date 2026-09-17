@@ -5,9 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using OneForAll.Core;
 using Ums.Application.Interfaces;
-using Ums.Host.Filters;
 using Ums.Application.Dtos;
-using OneForAll.Core.OAuth;
 
 namespace Ums.Host.Controllers
 {
@@ -15,7 +13,7 @@ namespace Ums.Host.Controllers
     /// 消息日志
     /// </summary>
     [Route("api/[controller]")]
-    [Authorize(Roles = UserRoleType.Admin)]
+    [AllowAnonymous]
     public class UmsMessageLogsController : BaseController
     {
         private readonly IUmsMessageLogService _service;
@@ -37,7 +35,6 @@ namespace Ums.Host.Controllers
 		///  <returns>分页</returns>
 		[HttpGet]
         [Route("{pageIndex}/{pageSize}")]
-        [CheckPermission(Action = ConstPermission.EnterView)]
         public async Task<PageList<UmsMessageRecordDto>> GetPgaeAsync(
             int pageIndex,
             int pageSize,

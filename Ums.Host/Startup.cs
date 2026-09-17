@@ -40,6 +40,7 @@ namespace Ums.Host
         private const string QUARTZ = "Quartz";
         private const string HTTP_SERVICE = "Ums.HttpService";
         private const string HTTP_SERVICE_KEY = "HttpService";
+        private const string HTTP_SERVICELOG_KEY = "HttpServiceLog";
 
         private const string BASE_HOST = "Ums.Host";
         private const string BASE_DOMAIN = "Ums.Domain";
@@ -110,6 +111,11 @@ namespace Ums.Host
 
             // 读取 HTTP 客户端相关配置
             var serviceConfig = Configuration.GetSection(HTTP_SERVICE_KEY).Get<HttpServiceConfig>();
+
+            // 读取 HTTP Log 相关配置
+            var serviceLogConfig = Configuration.GetSection(HTTP_SERVICELOG_KEY).Get<HttpServiceLogConfig>();
+            services.AddSingleton(serviceLogConfig);
+
             // 使用反射获取配置类的所有属性
             var props = OneForAll.Core.Utility.ReflectionHelper.GetPropertys(serviceConfig);
             props.ForEach(e =>
@@ -310,6 +316,9 @@ namespace Ums.Host
 
             // 启用默认文件支持（例如访问目录时自动查找 index.html 等默认页）
             app.UseDefaultFiles();
+
+            // 启用 wwwroot 静态文件服务（前端管理界面）
+            app.UseStaticFiles();
 
             // 启用路由中间件，为后续的端点映射做准备
             app.UseRouting();

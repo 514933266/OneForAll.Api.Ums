@@ -1,10 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using OneForAll.Core;
+using OneForAll.Core.Extension;
+using OneForAll.Core.ORM;
 using OneForAll.EFCore;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Ums.Domain.Entities;
+using Ums.Domain.Enums;
 using Ums.Domain.Repositorys;
 
 namespace Ums.Repository
@@ -18,6 +21,51 @@ namespace Ums.Repository
             : base(context)
         {
 
+        }
+
+        /// <summary>
+        /// 查询分页
+        /// </summary>
+        /// <param name="pageIndex">页码</param>
+        /// <param name="pageSize">页数</param>
+        /// <param name="startTime">开始时间</param>
+        /// <param name="endTime">结束时间</param>
+        /// <param name="key">去重key关键字</param>
+        /// <param name="messageType">消息类型</param>
+        /// <returns>分页列表</returns>
+        public async Task<PageList<UmsDeduplicationRecord>> GetPageAsync(
+            int pageIndex,
+            int pageSize,
+            DateTime? startTime,
+            DateTime? endTime,
+            string key,
+            UmsMessageTypeEnum? messageType)
+        {
+            var predicate = PredicateBuilder.Create<UmsDeduplicationRecord>(w => true);
+
+            if (!key.IsNullOrEmpty())
+                predicate = predicate.And(w => w.MessageKey.Contains(key));
+
+            if (messageType != null)
+                predicate = predicate.And(w => w.MessageType == messageType);
+
+            if (startTime != null)
+                predicate = predicate.And(w => w.CreateTime >= startTime);
+
+            if (endTime != null)
+                predicate = predicate.And(w => w.CreateTime <= endTime);
+
+            var total = await DbSet.AsNoTracking().CountAsync(predicate);
+
+            var items = await DbSet
+                .AsNoTracking()
+                .Where(predicate)
+                .OrderByDescending(w => w.CreateTime)
+                .Skip(pageSize * (pageIndex - 1))
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PageList<UmsDeduplicationRecord>(total, pageIndex, pageSize, items);
         }
 
         /// <summary>

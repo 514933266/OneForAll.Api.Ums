@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>消息推送服务</title>
+  <link rel="stylesheet" href="/lib/element-plus.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body, #app { height: 100%; }
+    body { font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Microsoft YaHei", Arial, sans-serif; background: #f0f2f5; }
+    .layout { height: 100%; }
+    .aside { background: #2f2f2f; }
+    .logo { height: 56px; line-height: 56px; text-align: center; color: #fff; font-size: 16px; font-weight: 600; background: #262626; white-space: nowrap; overflow: hidden; }
+    .aside .el-menu { border-right: none; --el-menu-hover-bg-color: #3a3a3a; --el-menu-active-color: #ffffff; }
+    .aside .el-menu-item.is-active { background-color: #1f1f1f !important; }
+    .aside .el-menu-item:hover { background-color: #3a3a3a !important; }
+    .header { background: #fff; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 4px rgba(0, 21, 41, .08); z-index: 10; }
+    .header-title { font-size: 16px; font-weight: 600; color: #303133; }
+    .header-extra { font-size: 13px; color: #909399; }
+    .main { padding: 16px; overflow-y: auto; }
+    .page-card { background: #fff; border-radius: 4px; padding: 16px; }
+    .search-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+    .search-bar .el-input { width: 180px; }
+    .table-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .pagination { display: flex; justify-content: flex-end; margin-top: 14px; }
+    .job-card { margin-bottom: 16px; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; }
+    .card-body { color: #606266; font-size: 14px; line-height: 1.8; }
+    .card-actions { margin-top: 12px; }
+    .form-tip { color: #909399; font-size: 12px; margin-top: 4px; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <el-container class="layout">
+      <el-aside width="200px" class="aside">
+        <div class="logo">消息推送服务</div>
+        <el-menu background-color="#2f2f2f" text-color="#cfd3dc" active-text-color="#ffffff" :default-active="activeMenu" @select="onMenuSelect">
+          <el-menu-item index="logs">消息日志</el-menu-item>
+          <el-menu-item index="sms">短信记录</el-menu-item>
+          <el-menu-item index="configs">通知配置</el-menu-item>
+          <el-menu-item index="dedup">去重记录</el-menu-item>
+          <el-menu-item index="startups">内置任务</el-menu-item>
+        </el-menu>
+      </el-aside>
+      <el-container>
+        <el-header class="header">
+          <span class="header-title">{{ pageTitle }}</span>
+          <span class="header-extra">OneForAll 消息推送服务</span>
+        </el-header>
+        <el-main class="main">
+          <!-- 消息日志 -->
+          <div v-show="activeMenu === 'logs'" class="page-card">
+            <div class="search-bar">
+              <el-date-picker v-model="logQuery.timeRange" type="datetimerange" range-separator="至" start-placeholder="开始时间" end-placeholder="结束时间" value-format="YYYY-MM-DD HH:mm:ss" style="width:380px;"></el-date-picker>
+              <el-input v-model="logQuery.exChangeName" placeholder="交换机名" clearable @keyup.enter="loadLogs"></el-input>
+              <el-input v-model="logQuery.queueName" placeholder="队列名" clearable @keyup.enter="loadLogs"></el-input>
+              <el-input v-model="logQuery.routeKey" placeholder="路由键" clearable @keyup.enter="loadLogs"></el-input>
+              <el-button type="primary" @click="loadLogs">查询</el-button>
+              <el-button @click="resetLogQuery">重置</el-button>
+            </div>
+            <el-table :data="logs" v-loading="logsLoading" border stripe>
+              <el-table-column prop="RequestUrl" label="请求地址" min-width="220" show-overflow-tooltip></el-table-column>
+              <el-table-column label="状态" width="85">
+                <template #default="scope">
+                  <el-tag :type="msgStatusMap[scope.row.Status] ? msgStatusMap[scope.row.Status].type : 'info'">{{ msgStatusMap[scope.row.Status] ? msgStatusMap[scope.row.Status].text : scope.row.Status }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="ExChangeName" label="交换机" width="160" show-overflow-tooltip></el-table-column>
+              <el-table-column prop="QueueName" label="队列" width="160" show-overflow-tooltip></el-table-column>
+              <el-table-column prop="RouteKey" label="路由键" width="140" show-overflow-tooltip></el-table-column>
+              <el-table-column prop="Result" label="结果" min-width="180" show-overflow-tooltip></el-table-column>
+              <el-table-column prop="OriginalMessage" label="原始消息" min-width="220" show-overflow-tooltip></el-table-column>
+              <el-table-column prop="CreateTime" label="创建时间" width="165">
+                <template #default="scope">{{ fmtTime(scope.row.CreateTime) }}</template>
+              </el-table-column>
+            </el-table>
+            <div class="pagination">
+              <el-pagination background layout="total, sizes, prev, pager, next, jumper" :total="logPage.total" :current-page="logPage.pageIndex" :page-size="logPage.pageSize" :page-sizes="[10, 20, 50]" @current-change="onLogPageChange" @size-change="onLogSizeChange"></el-pagination>
+            </div>
+          </div>
+
+          <!-- 短信记录 -->
+          <div v-show="activeMenu === 'sms'" class="page-card">
+            <div class="search-bar">
+              <el-date-picker v-model="smsQuery.timeRange" type="datetimerange" range-separator="至" start-placeholder="开始时间" end-placeholder="结束时间" value-format="YYYY-MM-DD HH:mm:ss" style="width:380px;"></el-date-picker>
+              <el-input v-model="smsQuery.platformName" placeholder="所属平台" clearable @keyup.enter="loadSmsRecords"></el-input>
+              <el-button type="primary" @click="loadSmsRecords">查询</el-button>
+              <el-button @click="resetSmsQuery">重置</el-button>
+            </div>
+            <el-table :data="smsRecords" v-loading="smsLoading" border stripe>
+              <el-table-column prop="PhoneNumber" label="手机号码" width="140"></el-table-column>
+              <el-table-column prop="NationCode" label="国家码" width="90"></el-table-column>
+              <el-table-column prop="PlatformName" label="所属平台" width="120" show-overflow-tooltip></el-table-column>
+              <el-table-column prop="Content" label="发送内容" min-width="200" show-overflow-tooltip></el-table-column>
+              <el-table-column label="状态" width="95">
+                <template #default="scope">
+                  <el-tag :type="smsStatusMap[scope.row.Status] ? smsStatusMap[scope.row.Status].type : 'info'">{{ smsStatusMap[scope.row.Status] ? smsStatusMap[scope.row.Status].text : scope.row.Status }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="ErrMsg" label="错误信息" min-width="160" show-overflow-tooltip></el-table-column>
+              <el-table-column prop="CreateTime" label="创建时间" width="165">
+                <template #default="scope">{{ fmtTime(scope.row.CreateTime) }}</template>
+              </el-table-column>
+            </el-table>
+            <div class="pagination">
+              <el-pagination background layout="total, sizes, prev, pager, next, jumper" :total="smsPage.total" :current-page="smsPage.pageIndex" :page-size="smsPage.pageSize" :page-sizes="[10, 20, 50]" @current-change="onSmsPageChange" @size-change="onSmsSizeChange"></el-pagination>
+            </div>
+          </div>
+
+          <!-- 通知配置 -->
+          <div v-show="activeMenu === 'configs'" class="page-card">
+            <div class="search-bar">
+              <el-input v-model="configQuery.clientId" placeholder="客户端ID" clearable @keyup.enter="loadConfigs"></el-input>
+              <el-button type="primary" @click="loadConfigs">查询</el-button>
+              <el-button @click="resetConfigQuery">重置</el-button>
+            </div>
+            <div class="table-toolbar">
+              <el-button type="primary" @click="openConfigDialog(null)">新增配置</el-button>
+            </div>
+            <el-table :data="configs" v-loading="configsLoading" border stripe>
+              <el-table-column prop="ClientId" label="客户端ID" min-width="120" show-overflow-tooltip></el-table-column>
+              <el-table-column prop="Code" label="代码" min-width="130" show-overflow-tooltip></el-table-column>
+              <el-table-column label="通知类型" width="140">
+                <template #default="scope">
+                  <el-tag>{{ msgTypeMap[scope.row.NotificationType] || scope.row.NotificationType }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="TargetJson" label="目标值" min-width="220" show-overflow-tooltip></el-table-column>
+              <el-table-column prop="Remark" label="备注" min-width="150" show-overflow-tooltip></el-table-column>
+              <el-table-column label="状态" width="80">
+                <template #default="scope">
+                  <el-tag :type="scope.row.IsEnabled ? 'success' : 'info'">{{ scope.row.IsEnabled ? '启用' : '禁用' }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="CreateTime" label="创建时间" width="165">
+                <template #default="scope">{{ fmtTime(scope.row.CreateTime) }}</template>
+              </el-table-column>
+              <el-table-column label="操作" width="150" fixed="right">
+                <template #default="scope">
+                  <el-button size="small" type="primary" @click="openConfigDialog(scope.row)">编辑</el-button>
+                  <el-button size="small" type="danger" @click="deleteConfig(scope.row)">删除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+            <div class="pagination">
+              <el-pagination background layout="total, sizes, prev, pager, next, jumper" :total="configPage.total" :current-page="configPage.pageIndex" :page-size="configPage.pageSize" :page-sizes="[10, 20, 50]" @current-change="onConfigPageChange" @size-change="onConfigSizeChange"></el-pagination>
+            </div>
+          </div>
+
+          <!-- 去重记录 -->
+          <div v-show="activeMenu === 'dedup'" class="page-card">
+            <div class="search-bar">
+              <el-date-picker v-model="dedupQuery.timeRange" type="datetimerange" range-separator="至" start-placeholder="开始时间" end-placeholder="结束时间" value-format="YYYY-MM-DD HH:mm:ss" style="width:380px;"></el-date-picker>
+              <el-input v-model="dedupQuery.key" placeholder="去重Key关键字" clearable @keyup.enter="loadDedups"></el-input>
+              <el-select v-model="dedupQuery.messageType" style="width:170px;">
+                <el-option v-for="t in msgTypeOptions" :key="t.value" :label="t.label" :value="t.value"></el-option>
+              </el-select>
+              <el-button type="primary" @click="loadDedups">查询</el-button>
+              <el-button @click="resetDedupQuery">重置</el-button>
+            </div>
+            <el-table :data="dedups" v-loading="dedupsLoading" border stripe>
+              <el-table-column prop="MessageKey" label="去重Key" min-width="280" show-overflow-tooltip></el-table-column>
+              <el-table-column label="消息类型" width="140">
+                <template #default="scope">
+                  <el-tag>{{ msgTypeMap[scope.row.MessageType] || scope.row.MessageType }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="SendCount" label="发送次数" width="95" align="center"></el-table-column>
+              <el-table-column label="最后发送时间" width="165">
+                <template #default="scope">{{ fmtTime(scope.row.LastSendTime) }}</template>
+              </el-table-column>
+              <el-table-column label="过期时间" width="165">
+                <template #default="scope">{{ fmtTime(scope.row.ExpireTime) }}</template>
+              </el-table-column>
+              <el-table-column prop="CreateTime" label="创建时间" width="165">
+                <template #default="scope">{{ fmtTime(scope.row.CreateTime) }}</template>
+              </el-table-column>
+            </el-table>
+            <div class="pagination">
+              <el-pagination background layout="total, sizes, prev, pager, next, jumper" :total="dedupPage.total" :current-page="dedupPage.pageIndex" :page-size="dedupPage.pageSize" :page-sizes="[10, 20, 50]" @current-change="onDedupPageChange" @size-change="onDedupSizeChange"></el-pagination>
+            </div>
+          </div>
+
+          <!-- 内置任务 -->
+          <div v-show="activeMenu === 'startups'">
+            <el-card v-for="job in startupJobs" :key="job.name" class="job-card">
+              <template #header>
+                <div class="card-header">
+                  <span style="font-weight:600;">{{ job.name }}</span>
+                  <el-tag type="info">{{ job.cron }}</el-tag>
+                </div>
+              </template>
+              <div class="card-body">
+                <p>{{ job.remark }}</p>
+              </div>
+              <div class="card-actions">
+                <el-button size="small" type="warning" @click="stopStartupJob(job.name)">暂停</el-button>
+                <el-button size="small" type="success" @click="resumeStartupJob(job.name)">恢复</el-button>
+                <el-button size="small" type="primary" @click="excuteStartupJob(job.name)">执行一次</el-button>
+              </div>
+            </el-card>
+          </div>
+        </el-main>
+      </el-container>
+    </el-container>
+
+    <!-- 通知配置弹窗 -->
+    <el-dialog v-model="configDialogVisible" :title="isEditConfig ? '编辑通知配置' : '新增通知配置'" width="560px">
+      <el-form ref="configFormRef" :model="configForm" :rules="configFormRules" label-width="90px">
+        <el-form-item label="客户端ID" prop="ClientId">
+          <el-input v-model="configForm.ClientId" placeholder="请输入客户端ID" maxlength="50"></el-input>
+        </el-form-item>
+        <el-form-item label="代码" prop="Code">
+          <el-input v-model="configForm.Code" placeholder="请输入唯一代码" maxlength="50"></el-input>
+        </el-form-item>
+        <el-form-item label="通知类型" prop="NotificationType">
+          <el-select v-model="configForm.NotificationType" style="width:100%;">
+            <el-option v-for="t in msgTypeOptions.filter(o => o.value !== -1)" :key="t.value" :label="t.label" :value="t.value"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="目标值" prop="TargetJson">
+          <el-input v-model="configForm.TargetJson" type="textarea" :rows="3" placeholder='JSON数组，如：["https://oapi.dingtalk.com/robot/send?access_token=xxx"]'></el-input>
+          <div class="form-tip">机器人地址/邮箱等目标值的 JSON 数组格式</div>
+        </el-form-item>
+        <el-form-item label="备注" prop="Remark">
+          <el-input v-model="configForm.Remark" placeholder="请输入备注" maxlength="500"></el-input>
+        </el-form-item>
+        <el-form-item label="是否启用" prop="IsEnabled">
+          <el-switch v-model="configForm.IsEnabled"></el-switch>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="configDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="savingConfig" @click="saveConfig">确定</el-button>
+      </template>
+    </el-dialog>
+  </div>
+
+  <script src="/lib/vue.global.prod.js"></script>
+  <script src="/lib/element-plus.min.js"></script>
+  <script src="/lib/element-plus-icons.min.js"></script>
+  <script>
+    const { createApp } = Vue;
+    const { ElMessage, ElMessageBox } = ElementPlus;
+
+    // 请求封装：HTTP 失败或响应 Status === false 时抛出异常
+    async function request(url, options = {}) {
+      const res = await fetch(url, {
+        headers: { 'Content-Type': 'application/json' },
+        ...options
+      });
+      let data = null;
+      try { data = await res.json(); } catch (e) { data = null; }
+      if (!res.ok) {
+        throw new Error((data && data.Message) || ('请求失败（HTTP ' + res.status + '）'));
+      }
+      if (data && typeof data.Status === 'boolean' && data.Status === false) {
+        throw new Error(data.Message || '操作失败');
+      }
+      return data;
+    }
+
+    function buildQuery(params) {
+      const usp = new URLSearchParams();
+      Object.keys(params).forEach(k => {
+        const v = params[k];
+        if (v !== null && v !== undefined && v !== '' && v !== -1) usp.append(k, v);
+      });
+      const s = usp.toString();
+      return s ? ('?' + s) : '';
+    }
+
+    createApp({
+      data() {
+        return {
+          activeMenu: 'logs',
+          // Mq消息状态
+          msgStatusMap: {
+            0: { text: '失败', type: 'danger' },
+            1: { text: '成功', type: 'success' },
+            2: { text: '等待', type: 'warning' },
+            99: { text: '异常', type: 'danger' }
+          },
+          // 短信发送状态
+          smsStatusMap: {
+            0: { text: '待发送', type: 'warning' },
+            1: { text: '发送成功', type: 'success' },
+            99: { text: '异常', type: 'danger' }
+          },
+          // 消息类型
+          msgTypeMap: {
+            0: '默认',
+            1: '链接',
+            2: '企业微信机器人',
+            3: '钉钉机器人',
+            4: '邮件通知',
+            5: '微信公众号模板',
+            6: '微信公众号订阅'
+          },
+          msgTypeOptions: [
+            { value: -1, label: '全部类型' },
+            { value: 0, label: '默认' },
+            { value: 1, label: '链接' },
+            { value: 2, label: '企业微信机器人' },
+            { value: 3, label: '钉钉机器人' },
+            { value: 4, label: '邮件通知' },
+            { value: 5, label: '微信公众号模板' },
+            { value: 6, label: '微信公众号订阅' }
+          ],
+          // 消息日志
+          logQuery: { timeRange: null, exChangeName: '', queueName: '', routeKey: '' },
+          logPage: { pageIndex: 1, pageSize: 10, total: 0 },
+          logs: [],
+          logsLoading: false,
+          // 短信记录
+          smsQuery: { timeRange: null, platformName: '' },
+          smsPage: { pageIndex: 1, pageSize: 10, total: 0 },
+          smsRecords: [],
+          smsLoading: false,
+          // 通知配置
+          configQuery: { clientId: '' },
+          configPage: { pageIndex: 1, pageSize: 10, total: 0 },
+          configs: [],
+          configsLoading: false,
+          configDialogVisible: false,
+          isEditConfig: false,
+          savingConfig: false,
+          configForm: { Id: null, ClientId: '', Code: '', NotificationType: 0, TargetJson: '', Remark: '', IsEnabled: true },
+          configFormRules: {
+            ClientId: [{ required: true, message: '请输入客户端ID', trigger: 'blur' }],
+            Code: [{ required: true, message: '请输入代码', trigger: 'blur' }, { max: 50, message: '最多50个字符', trigger: 'blur' }],
+            NotificationType: [{ required: true, message: '请选择通知类型', trigger: 'change' }],
+            TargetJson: [{ required: true, message: '请输入目标值', trigger: 'blur' }],
+            Remark: [{ required: true, message: '请输入备注', trigger: 'blur' }, { max: 500, message: '最多500个字符', trigger: 'blur' }]
+          },
+          // 去重记录
+          dedupQuery: { timeRange: null, key: '', messageType: -1 },
+          dedupPage: { pageIndex: 1, pageSize: 10, total: 0 },
+          dedups: [],
+          dedupsLoading: false,
+          // 内置任务（与 appsettings.json Quartz.ScheduleJobs 对应）
+          startupJobs: [
+            { name: 'MonitorUnsentMessageJob', cron: '0 0/20 * * * ?', remark: '监控当天未发送队列消息（超一小时），每20分钟执行一次' }
+          ]
+        };
+      },
+      computed: {
+        pageTitle() {
+          const map = { logs: '消息日志', sms: '短信记录', configs: '通知配置', dedup: '去重记录', startups: '内置任务' };
+          return map[this.activeMenu] || '';
+        }
+      },
+      methods: {
+        fmtTime(v) {
+          if (!v) return '-';
+          const s = String(v);
+          if (s.indexOf('0001') === 0 || s.indexOf('9999') === 0) return '-';
+          return s;
+        },
+        onMenuSelect(index) {
+          this.activeMenu = index;
+          if (index === 'logs') this.loadLogs();
+          else if (index === 'sms') this.loadSmsRecords();
+          else if (index === 'configs') this.loadConfigs();
+          else if (index === 'dedup') this.loadDedups();
+        },
+        // ---------- 消息日志 ----------
+        async loadLogs() {
+          this.logsLoading = true;
+          try {
+            const params = {
+              startTime: this.logQuery.timeRange ? this.logQuery.timeRange[0] : '',
+              endTime: this.logQuery.timeRange ? this.logQuery.timeRange[1] : '',
+              exChangeName: this.logQuery.exChangeName,
+              queueName: this.logQuery.queueName,
+              routeKey: this.logQuery.routeKey
+            };
+            const url = '/api/UmsMessageLogs/' + this.logPage.pageIndex + '/' + this.logPage.pageSize + buildQuery(params);
+            const res = await request(url);
+            this.logs = res.Items || [];
+            this.logPage.total = res.Total || 0;
+          } catch (e) {
+            ElMessage.error(e.message);
+          } finally {
+            this.logsLoading = false;
+          }
+        },
+        resetLogQuery() {
+          this.logQuery = { timeRange: null, exChangeName: '', queueName: '', routeKey: '' };
+          this.logPage.pageIndex = 1;
+          this.loadLogs();
+        },
+        onLogPageChange(page) {
+          this.logPage.pageIndex = page;
+          this.loadLogs();
+        },
+        onLogSizeChange(size) {
+          this.logPage.pageSize = size;
+          this.logPage.pageIndex = 1;
+          this.loadLogs();
+        },
+        // ---------- 短信记录 ----------
+        async loadSmsRecords() {
+          this.smsLoading = true;
+          try {
+            const params = {
+              startTime: this.smsQuery.timeRange ? this.smsQuery.timeRange[0] : '',
+              endTime: this.smsQuery.timeRange ? this.smsQuery.timeRange[1] : '',
+              platformName: this.smsQuery.platformName
+            };
+            const url = '/api/UmsSmsRecords/' + this.smsPage.pageIndex + '/' + this.smsPage.pageSize + buildQuery(params);
+            const res = await request(url);
+            this.smsRecords = res.Items || [];
+            this.smsPage.total = res.Total || 0;
+          } catch (e) {
+            ElMessage.error(e.message);
+          } finally {
+            this.smsLoading = false;
+          }
+        },
+        resetSmsQuery() {
+          this.smsQuery = { timeRange: null, platformName: '' };
+          this.smsPage.pageIndex = 1;
+          this.loadSmsRecords();
+        },
+        onSmsPageChange(page) {
+          this.smsPage.pageIndex = page;
+          this.loadSmsRecords();
+        },
+        onSmsSizeChange(size) {
+          this.smsPage.pageSize = size;
+          this.smsPage.pageIndex = 1;
+          this.loadSmsRecords();
+        },
+        // ---------- 通知配置 ----------
+        async loadConfigs() {
+          this.configsLoading = true;
+          try {
+            const url = '/api/UmsNotificationConfigs/' + this.configPage.pageIndex + '/' + this.configPage.pageSize + buildQuery({ clientId: this.configQuery.clientId });
+            const res = await request(url);
+            this.configs = res.Items || [];
+            this.configPage.total = res.Total || 0;
+          } catch (e) {
+            ElMessage.error(e.message);
+          } finally {
+            this.configsLoading = false;
+          }
+        },
+        resetConfigQuery() {
+          this.configQuery = { clientId: '' };
+          this.configPage.pageIndex = 1;
+          this.loadConfigs();
+        },
+        onConfigPageChange(page) {
+          this.configPage.pageIndex = page;
+          this.loadConfigs();
+        },
+        onConfigSizeChange(size) {
+          this.configPage.pageSize = size;
+          this.configPage.pageIndex = 1;
+          this.loadConfigs();
+        },
+        openConfigDialog(row) {
+          if (row) {
+            this.isEditConfig = true;
+            this.configForm = {
+              Id: row.Id,
+              ClientId: row.ClientId,
+              Code: row.Code,
+              NotificationType: row.NotificationType,
+              TargetJson: row.TargetJson,
+              Remark: row.Remark,
+              IsEnabled: row.IsEnabled
+            };
+          } else {
+            this.isEditConfig = false;
+            this.configForm = { Id: null, ClientId: '', Code: '', NotificationType: 0, TargetJson: '', Remark: '', IsEnabled: true };
+          }
+          this.configDialogVisible = true;
+          this.$nextTick(() => {
+            if (this.$refs.configFormRef) this.$refs.configFormRef.clearValidate();
+          });
+        },
+        async saveConfig() {
+          try {
+            await this.$refs.configFormRef.validate();
+          } catch (e) {
+            return;
+          }
+          this.savingConfig = true;
+          try {
+            const body = JSON.stringify(this.configForm);
+            if (this.isEditConfig) {
+              await request('/api/UmsNotificationConfigs/' + this.configForm.Id, { method: 'PUT', body });
+              ElMessage.success('修改成功');
+            } else {
+              await request('/api/UmsNotificationConfigs', { method: 'POST', body });
+              ElMessage.success('添加成功');
+            }
+            this.configDialogVisible = false;
+            this.loadConfigs();
+          } catch (e) {
+            ElMessage.error(e.message);
+          } finally {
+            this.savingConfig = false;
+          }
+        },
+        async deleteConfig(row) {
+          try {
+            await ElMessageBox.confirm('确定要删除配置「' + row.Code + '」吗？', '提示', { type: 'warning' });
+          } catch (e) {
+            return;
+          }
+          try {
+            await request('/api/UmsNotificationConfigs/' + row.Id, { method: 'DELETE' });
+            ElMessage.success('删除成功');
+            this.loadConfigs();
+          } catch (e) {
+            ElMessage.error(e.message);
+          }
+        },
+        // ---------- 去重记录 ----------
+        async loadDedups() {
+          this.dedupsLoading = true;
+          try {
+            const params = {
+              startTime: this.dedupQuery.timeRange ? this.dedupQuery.timeRange[0] : '',
+              endTime: this.dedupQuery.timeRange ? this.dedupQuery.timeRange[1] : '',
+              key: this.dedupQuery.key,
+              messageType: this.dedupQuery.messageType
+            };
+            const url = '/api/UmsDeduplicationRecords/' + this.dedupPage.pageIndex + '/' + this.dedupPage.pageSize + buildQuery(params);
+            const res = await request(url);
+            this.dedups = res.Items || [];
+            this.dedupPage.total = res.Total || 0;
+          } catch (e) {
+            ElMessage.error(e.message);
+          } finally {
+            this.dedupsLoading = false;
+          }
+        },
+        resetDedupQuery() {
+          this.dedupQuery = { timeRange: null, key: '', messageType: -1 };
+          this.dedupPage.pageIndex = 1;
+          this.loadDedups();
+        },
+        onDedupPageChange(page) {
+          this.dedupPage.pageIndex = page;
+          this.loadDedups();
+        },
+        onDedupSizeChange(size) {
+          this.dedupPage.pageSize = size;
+          this.dedupPage.pageIndex = 1;
+          this.loadDedups();
+        },
+        // ---------- 内置任务 ----------
+        async controlStartupJob(name, action, successMsg) {
+          try {
+            await request('/api/Startups/Default/Jobs/' + name + '/' + action, { method: 'POST' });
+            ElMessage.success(successMsg);
+          } catch (e) {
+            ElMessage.error(e.message);
+          }
+        },
+        stopStartupJob(name) { this.controlStartupJob(name, 'Stop', '暂停成功'); },
+        resumeStartupJob(name) { this.controlStartupJob(name, 'Resume', '恢复成功'); },
+        excuteStartupJob(name) { this.controlStartupJob(name, 'Excute', '任务触发执行成功'); }
+      },
+      mounted() {
+        this.loadLogs();
+      }
+    }).use(ElementPlus).mount('#app');
+  </script>
+</body>
+</html>

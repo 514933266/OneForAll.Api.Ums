@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Ums.Host.Controllers
 {
-    [Authorize]
+    [AllowAnonymous]
     [Route("api/[controller]")]
     public class StartupsController : Controller
     {
@@ -61,7 +61,7 @@ namespace Ums.Host.Controllers
             var job = scheduler.GetJobDetail(jobKey);
             if (job.Result == null)
                 return msg.Fail("不存在该定时任务");
-            await scheduler.PauseJob(jobKey);
+            await scheduler.ResumeJob(jobKey);
             return msg.Success("启动成功");
         }
 

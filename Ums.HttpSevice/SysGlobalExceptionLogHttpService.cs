@@ -1,14 +1,15 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Ums.HttpService.Interfaces;
+using Ums.HttpService.Models;
+using OneForAll.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http.Formatting;
 using System.Net.Http;
+using System.Net.Http.Formatting;
 using System.Text;
 using System.Threading.Tasks;
-using Ums.HttpService.Models;
-using Ums.HttpService.Interfaces;
-using OneForAll.Core;
+using Ums.Public.Models;
 
 namespace Ums.HttpService
 {
@@ -17,36 +18,48 @@ namespace Ums.HttpService
     /// </summary>
     public class SysGlobalExceptionLogHttpService : BaseHttpService, ISysGlobalExceptionLogHttpService
     {
+        private readonly AuthConfig _authConfig;
         private readonly HttpServiceConfig _config;
+        private readonly HttpServiceLogConfig _logConfig;
 
         public SysGlobalExceptionLogHttpService(
+            AuthConfig authConfig,
             HttpServiceConfig config,
+            HttpServiceLogConfig logConfig,
             IHttpContextAccessor httpContext,
             IHttpClientFactory httpClientFactory) : base(httpContext, httpClientFactory)
         {
+            _authConfig = authConfig;
             _config = config;
+            _logConfig = logConfig;
         }
 
         /// <summary>
         /// 添加
         /// </summary>
-        /// <param name="form">实体</param>
+        /// <param name="entity">实体</param>
         /// <returns></returns>
-        public async Task AddAsync(SysGlobalExceptionLogRequest form)
+        public async Task AddAsync(SysGlobalExceptionLogRequest entity)
         {
+            // 检查是否启用日志
+            if (!_logConfig.GlobalExceptionLog)
+                return;
+
             try
             {
-                form.CreateTime = DateTime.UtcNow;
+                entity.CreateTime = DateTime.UtcNow;
+                entity.ModuleCode = _authConfig.ClientCode;
+                entity.ModuleName = _authConfig.ClientName;
 
                 var client = GetHttpClient(_config.SysLog);
                 if (client != null && client.BaseAddress != null)
                 {
-                    await client.PostAsync("api/SysGlobalExceptionLogs", form, new JsonMediaTypeFormatter());
+                    await client.PostAsync("api/SysGlobalExceptionLogs", entity, new JsonMediaTypeFormatter());
                 }
             }
             catch
             {
-                // 忽略异常，记录日志失败不影响主流程
+                // 忽略异常
             }
         }
     }

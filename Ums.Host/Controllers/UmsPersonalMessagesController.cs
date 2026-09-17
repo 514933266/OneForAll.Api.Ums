@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OneForAll.Core;
-using OneForAll.Core.OAuth;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -15,7 +14,7 @@ namespace Ums.Host.Controllers
     /// 个人消息中心
     /// </summary>
     [Route("api/[controller]")]
-    [Authorize(Roles = UserRoleType.Admin)]
+    [AllowAnonymous]
     public class UmsPersonalMessagesController : BaseController
     {
         private readonly IUmsPersonalMessageService _service;

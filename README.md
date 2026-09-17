@@ -82,23 +82,35 @@ OneForAll.Api.Ums/
 | POST | `/api/WxmpMessage` | 发送微信小程序订阅消息 |
 | POST | `/api/UmsPersonalMessages` | 发送站内个人消息 |
 
-### 管理接口（需 JWT 认证）
+### 管理界面
+
+访问 `http://localhost:5085/` 打开内置管理界面（Vue3 + Element Plus 单页应用，静态文件位于 `Ums.Host/wwwroot`），包含：
+
+- 消息日志、短信记录、去重记录查询（时间范围筛选精确到秒）
+- 通知配置管理（增删改查）
+- 内置定时任务控制（暂停 / 恢复 / 执行一次）
+
+### 管理接口（无需认证）
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | GET | `/api/UmsMessageLogs/{pageIndex}/{pageSize}` | 分页查询消息发送日志 |
 | GET | `/api/UmsSmsRecords/{pageIndex}/{pageSize}` | 分页查询短信发送记录 |
-| GET | `/api/UmsNotificationConfigs` | 查询通知配置列表 |
+| GET | `/api/UmsNotificationConfigs/{pageIndex}/{pageSize}` | 分页查询通知配置 |
 | POST | `/api/UmsNotificationConfigs` | 创建通知配置 |
-| PATCH | `/api/UmsNotificationConfigs/{id}` | 更新通知配置 |
+| PUT | `/api/UmsNotificationConfigs/{id}` | 更新通知配置 |
 | DELETE | `/api/UmsNotificationConfigs/{id}` | 删除通知配置 |
-| GET | `/api/UmsDeduplicationRecords` | 查询去重记录 |
+| GET | `/api/UmsDeduplicationRecords/{pageIndex}/{pageSize}` | 分页查询去重记录 |
+| POST | `/api/UmsDeduplicationRecords` | 添加去重记录 |
 
 ### 系统接口
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | GET | `/api/Startups` | 健康检查（供调度中心探测） |
+| POST | `/api/Startups/Default/Jobs/{jobName}/Stop` | 暂停内置定时任务 |
+| POST | `/api/Startups/Default/Jobs/{jobName}/Resume` | 恢复内置定时任务 |
+| POST | `/api/Startups/Default/Jobs/{jobName}/Excute` | 执行一次内置定时任务 |
 
 ## 数据库
 
