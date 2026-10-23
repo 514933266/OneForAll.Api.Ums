@@ -15,7 +15,6 @@
     <ProjectReference Include="..\Ums.Domain\Ums.Domain.csproj" />
     <ProjectReference Include="..\Ums.HttpSevice\Ums.HttpService.csproj" />
     <ProjectReference Include="..\Ums.Public\Ums.Public.csproj" />
-    <ProjectReference Include="..\Ums.Repository\Ums.Repository.csproj" />
   </ItemGroup>
 
 </Project>

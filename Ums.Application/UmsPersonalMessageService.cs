@@ -20,14 +20,17 @@ namespace Ums.Application
     {
         private readonly IMapper _mapper;
         private readonly IUmsPersonalMessageManager _manager;
+        private readonly IUmsPersonalMessageQueryService _queryService;
 
         public UmsPersonalMessageService(
             IMapper mapper,
-            IUmsPersonalMessageManager manager
+            IUmsPersonalMessageManager manager,
+            IUmsPersonalMessageQueryService queryService
             )
         {
             _mapper = mapper;
             _manager = manager;
+            _queryService = queryService;
         }
 
         /// <summary>
@@ -37,7 +40,7 @@ namespace Ums.Application
         /// <returns>列表</returns>
         public async Task<IEnumerable<UmsPersonalMessageDto>> GetListAsync(int top)
         {
-            var data = await _manager.GetListAsync(top);
+            var data = await _queryService.GetListAsync(top);
             return _mapper.Map<IEnumerable<UmsMessage>, IEnumerable<UmsPersonalMessageDto>>(data);
         }
 
@@ -48,7 +51,7 @@ namespace Ums.Application
         /// <returns>列表</returns>
         public async Task<IEnumerable<UmsPersonalMessageDto>> GetListByDayAsync(int day)
         {
-            var data = await _manager.GetListByDayAsync(day);
+            var data = await _queryService.GetListByDayAsync(day);
             return _mapper.Map<IEnumerable<UmsMessage>, IEnumerable<UmsPersonalMessageDto>>(data);
         }
 
@@ -62,7 +65,7 @@ namespace Ums.Application
         /// <returns>分页列表</returns>
         public async Task<PageList<UmsPersonalMessageDto>> GetPageAsync(int pageIndex, int pageSize, string key, UmsMessageReadStatusEnum status)
         {
-            var data = await _manager.GetPageAsync(pageIndex, pageSize, key, status);
+            var data = await _queryService.GetPageAsync(pageIndex, pageSize, key, status);
             var items = _mapper.Map<IEnumerable<UmsMessage>, IEnumerable<UmsPersonalMessageDto>>(data.Items);
             return new PageList<UmsPersonalMessageDto>(data.Total, data.PageSize, data.PageIndex, items);
         }
@@ -73,7 +76,7 @@ namespace Ums.Application
         /// <returns>结果</returns>
         public async Task<int> GetUnReadCountAsync()
         {
-            return await _manager.GetUnReadCountAsync();
+            return await _queryService.GetUnReadCountAsync();
         }
 
         /// <summary>

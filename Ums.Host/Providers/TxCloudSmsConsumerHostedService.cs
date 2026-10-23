@@ -2,28 +2,28 @@
 using RabbitMQ.Client;
 using System.Threading;
 using System.Threading.Tasks;
-using Ums.Domain.Interfaces;
+using Ums.Application.Interfaces;
 
 namespace Ums.Host.Providers
 {
     /// <summary>
-    /// 腾讯云短信消费
+    /// rabbitmq腾讯云短信消费托管
     /// </summary>
     public class TxCloudSmsConsumerHostedService : IHostedService
     {
         private readonly IConnection _conn;
         private readonly IChannel _channel;
-        private readonly ITxCloudSmsManager _manager;
-        public TxCloudSmsConsumerHostedService(ConnectionFactory mqFactory, ITxCloudSmsManager manager)
+        private readonly IUmsQueueConsumeService _consumeService;
+        public TxCloudSmsConsumerHostedService(ConnectionFactory mqFactory, IUmsQueueConsumeService consumeService)
         {
-            _manager = manager;
+            _consumeService = consumeService;
             _conn = mqFactory.CreateConnectionAsync().Result;
             _channel = _conn.CreateChannelAsync().Result;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            await _manager.ReceiveAsync(_channel);
+            await _consumeService.ReceiveTxCloudSmsAsync(_channel);
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)
@@ -33,4 +33,3 @@ namespace Ums.Host.Providers
         }
     }
 }
-

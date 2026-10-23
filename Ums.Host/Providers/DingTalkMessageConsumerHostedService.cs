@@ -1,30 +1,30 @@
 ﻿using Microsoft.Extensions.Hosting;
 using RabbitMQ.Client;
-using System.Threading.Tasks;
 using System.Threading;
-using Ums.Domain.Interfaces;
+using System.Threading.Tasks;
+using Ums.Application.Interfaces;
 
 namespace Ums.Host.Providers
 {
     /// <summary>
-    /// 钉钉消费者
+    /// rabbitmq钉钉消息消费托管
     /// </summary>
     public class DingTalkMessageConsumerHostedService : IHostedService
     {
         private readonly IConnection _conn;
         private readonly IChannel _channel;
-        private readonly IDingTalkMessageManager _manager;
-        public DingTalkMessageConsumerHostedService(ConnectionFactory mqFactory, IDingTalkMessageManager manager)
+        private readonly IUmsQueueConsumeService _consumeService;
+        public DingTalkMessageConsumerHostedService(ConnectionFactory mqFactory, IUmsQueueConsumeService consumeService)
         {
-            _manager = manager;
+            _consumeService = consumeService;
             _conn = mqFactory.CreateConnectionAsync().Result;
             _channel = _conn.CreateChannelAsync().Result;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            await _manager.ReceiveTextAsync(_channel);
-            await _manager.ReceiveMarkdownAsync(_channel);
+            await _consumeService.ReceiveDingTalkTextAsync(_channel);
+            await _consumeService.ReceiveDingTalkMarkdownAsync(_channel);
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)

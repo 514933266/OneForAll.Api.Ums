@@ -133,6 +133,16 @@ namespace Ums.Repository
                 .OrderByDescending(o => o.CreateTime)
                 .ToListAsync();
         }
+
+        /// <summary>
+        /// 查询用户全部消息（跟踪，用于批量已读/删除）
+        /// </summary>
+        /// <param name="accountId">账户id</param>
+        /// <returns></returns>
+        public async Task<List<UmsMessage>> GetAllByAccountAsync(Guid accountId)
+        {
+            return await DbSet.Where(w => w.ToAccountId == accountId).ToListAsync();
+        }
     }
 }
 

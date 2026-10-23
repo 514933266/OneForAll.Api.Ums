@@ -22,6 +22,8 @@ using Ums.Host.Filters;
 using Ums.Public.Models;
 using Ums.HttpService.Models;
 using Ums.Host.Providers;
+using Ums.Domain.Interfaces;
+using Ums.Domain.ValueObjects;
 using Quartz.Impl;
 using Quartz.Spi;
 using Quartz;
@@ -38,6 +40,7 @@ namespace Ums.Host
         private const string CORS = "Cors";
         private const string AUTH = "Auth";
         private const string QUARTZ = "Quartz";
+        private const string JOB_LOCK = "JobLock";
         private const string HTTP_SERVICE = "Ums.HttpService";
         private const string HTTP_SERVICE_KEY = "HttpService";
         private const string HTTP_SERVICELOG_KEY = "HttpServiceLog";
@@ -152,6 +155,11 @@ namespace Ums.Host
             services.AddSingleton<HttpServiceConfig>();
             services.AddSingleton<IUploader, Uploader>();
             services.AddScoped<ITenantProvider, TenantProvider>();
+            services.AddScoped<ICurrentUser, CurrentUser>();
+
+            // 领域层配置值对象（Domain 不读取 IConfiguration）
+            services.AddSingleton(Configuration.GetSection("Sms:TxCloud").Get<TxCloudSmsSettingVo>() ?? new TxCloudSmsSettingVo());
+            services.AddSingleton(Configuration.GetSection("Email").Get<EmailSmtpSettingVo>() ?? new EmailSmtpSettingVo());
 
             // 注册内存缓存（用于消息去重）
             services.AddMemoryCache();
@@ -183,6 +191,11 @@ namespace Ums.Host
             // 读取 Quartz 定时任务配置
             var quartzConfig = Configuration.GetSection(QUARTZ).Get<QuartzScheduleJobConfig>();
             services.AddSingleton(quartzConfig); // 注册配置为单例
+
+            // 定时任务运行锁配置（调度中心并发检查异常时是否放行执行）
+            var jobLockConfig = new JobLockConfig();
+            Configuration.GetSection(JOB_LOCK).Bind(jobLockConfig);
+            services.AddSingleton(jobLockConfig);
 
             // 注册自定义 Job 工厂和调度器工厂
             services.AddSingleton<IJobFactory, ScheduleJobFactory>();
@@ -263,13 +276,18 @@ namespace Ums.Host
                 .Where(t => t.Name.EndsWith("Service"))
                 .AsImplementedInterfaces();
 
-            // 领域层
+            // 领域层（命令：Manager）
             builder.RegisterAssemblyTypes(Assembly.Load(BASE_DOMAIN))
                 .Where(t => t.Name.EndsWith("Manager"))
                 .AsImplementedInterfaces();
 
+            // 领域层（查询：QueryService）
+            builder.RegisterAssemblyTypes(Assembly.Load(BASE_DOMAIN))
+                .Where(t => t.Name.EndsWith("QueryService"))
+                .AsImplementedInterfaces();
+
             // 注册消息去重管理器
-            builder.RegisterType<Ums.Domain.UmsMessageDeduplicationManager>()
+            builder.RegisterType<Ums.Domain.Managers.UmsMessageDeduplicationManager>()
                 .As<Ums.Domain.Interfaces.IUmsMessageDeduplicationManager>()
                 .InstancePerLifetimeScope();
 

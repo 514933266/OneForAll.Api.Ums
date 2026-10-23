@@ -17,14 +17,14 @@ namespace Ums.Domain.Models
         /// </summary>
         [Required]
         [StringLength(50)]
-        public string MoudleName { get; set; }
+        public string ModuleName { get; set; }
 
         /// <summary>
         /// 模块代码
         /// </summary>
         [Required]
         [StringLength(50)]
-        public string MoudleCode { get; set; }
+        public string ModuleCode { get; set; }
 
         /// <summary>
         /// 短信签名

@@ -4,6 +4,7 @@ using OneForAll.Core.Extension;
 using OneForAll.Core.ORM;
 using OneForAll.EFCore;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Ums.Domain.Entities;
@@ -104,6 +105,16 @@ namespace Ums.Repository
                 DbSet.RemoveRange(expiredRecords);
                 await SaveChangesAsync();
             }
+        }
+
+        /// <summary>
+        /// 查询指定消息类型的全部去重记录（跟踪）
+        /// </summary>
+        /// <param name="messageType">消息类型</param>
+        /// <returns>记录列表</returns>
+        public async Task<List<UmsDeduplicationRecord>> GetListByTypeAsync(UmsMessageTypeEnum messageType)
+        {
+            return await DbSet.Where(w => w.MessageType == messageType).ToListAsync();
         }
     }
 }

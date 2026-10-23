@@ -10,7 +10,6 @@ using Ums.Domain.Entities;
 using Ums.Domain.Enums;
 using Ums.Domain.Interfaces;
 using Ums.Domain.Models;
-using Ums.Domain.Repositorys;
 
 namespace Ums.Application
 {

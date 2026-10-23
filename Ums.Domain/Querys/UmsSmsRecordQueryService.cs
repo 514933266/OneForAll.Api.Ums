@@ -1,0 +1,42 @@
+using OneForAll.Core;
+using System;
+using System.Threading.Tasks;
+using Ums.Domain.Entities;
+using Ums.Domain.Interfaces;
+using Ums.Domain.Repositorys;
+
+namespace Ums.Domain.Querys
+{
+    /// <summary>
+    /// 短信发送记录查询服务
+    /// </summary>
+    public class UmsSmsRecordQueryService : IUmsSmsRecordQueryService
+    {
+        private readonly IUmsSmsRecordRepository _repository;
+
+        public UmsSmsRecordQueryService(
+            IUmsSmsRecordRepository repository)
+        {
+            _repository = repository;
+        }
+
+        /// <summary>
+        /// 查询分页
+        /// </summary>
+        /// <param name="pageIndex">页码</param>
+        /// <param name="pageSize">页数</param>
+        /// <param name="startTime">开始时间</param>
+        /// <param name="endTime">结束时间</param>
+        /// <param name="platformName">平台名称</param>
+        ///  <returns>分页</returns>
+        public async Task<PageList<UmsSmsRecord>> GetPgaeAsync(
+            int pageIndex,
+            int pageSize,
+            DateTime? startTime,
+            DateTime? endTime,
+            string platformName)
+        {
+            return await _repository.GetPgaeAsync(pageIndex, pageSize, startTime, endTime, platformName);
+        }
+    }
+}

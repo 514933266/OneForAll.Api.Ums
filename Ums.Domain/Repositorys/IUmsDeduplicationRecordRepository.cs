@@ -1,6 +1,7 @@
 using OneForAll.Core;
 using OneForAll.EFCore;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Ums.Domain.Entities;
 using Ums.Domain.Enums;
@@ -44,5 +45,12 @@ namespace Ums.Domain.Repositorys
         /// 删除过期记录
         /// </summary>
         Task DeleteExpiredAsync(DateTime expireTime);
+
+        /// <summary>
+        /// 查询指定消息类型的全部去重记录（跟踪）
+        /// </summary>
+        /// <param name="messageType">消息类型</param>
+        /// <returns>记录列表</returns>
+        Task<List<UmsDeduplicationRecord>> GetListByTypeAsync(UmsMessageTypeEnum messageType);
     }
 }

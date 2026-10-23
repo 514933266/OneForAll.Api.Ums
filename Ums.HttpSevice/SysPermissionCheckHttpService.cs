@@ -72,8 +72,7 @@ namespace Ums.HttpService
                     Controller = controller,
                     Action = action
                 };
-                var url = $"{client.BaseAddress}api/SysPermissionCheck";
-                var result = await client.PostAsync(url, postData, new JsonMediaTypeFormatter());
+                var result = await client.PostAsync("api/SysPermissionCheck", postData, new JsonMediaTypeFormatter());
                 return await result.Content.ReadAsAsync<BaseMessage>();
             }
             return new BaseMessage()

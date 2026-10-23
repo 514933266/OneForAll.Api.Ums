@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using OneForAll.Core.ORM;
+﻿using OneForAll.Core.ORM;
 using OneForAll.Core;
 using OneForAll.EFCore;
 using System;
@@ -65,5 +64,12 @@ namespace Ums.Domain.Repositorys
         /// <param name="userId">用户id</param>
         /// <returns></returns>
         Task<IEnumerable<UmsMessage>> GetUnReadListAsync(Guid userId);
+
+        /// <summary>
+        /// 查询用户全部消息（跟踪，用于批量已读/删除）
+        /// </summary>
+        /// <param name="accountId">账户id</param>
+        /// <returns></returns>
+        Task<List<UmsMessage>> GetAllByAccountAsync(Guid accountId);
     }
 }

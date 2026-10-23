@@ -1,14 +1,9 @@
-﻿using NuGet.Protocol;
-using OneForAll.Core;
+﻿using OneForAll.Core;
 using Quartz;
-using System;
-using System.Linq;
 using System.Threading.Tasks;
-using Ums.Domain;
-using Ums.Domain.Interfaces;
-using Ums.Domain.Repositorys;
+using Ums.Application.Interfaces;
+using Ums.Host.Models;
 using Ums.HttpService.Interfaces;
-using Ums.HttpService.Models;
 using Ums.Public.Models;
 
 namespace Ums.Host.QuartzJobs
@@ -17,57 +12,29 @@ namespace Ums.Host.QuartzJobs
     /// 监控当天未发送队列消息（超一小时）
     /// </summary>
     [DisallowConcurrentExecution]
-    public class MonitorUnsentMessageJob : IJob
+    public class MonitorUnsentMessageJob : BaseLockJob
     {
-        private readonly AuthConfig _config;
-        private readonly UmsBaseMQManager _mqManager;
-        private readonly IUmsMessageRecordRepository _repository;
-
-        private readonly IScheduleJobHttpService _jobHttpService;
-        private readonly ISysGlobalExceptionLogHttpService _logHttpService;
+        private readonly IUmsUnsentMessageService _unsentMessageService;
 
         public MonitorUnsentMessageJob(
-            AuthConfig config,
-            UmsBaseMQManager mqManager,
-            IUmsMessageRecordRepository repository,
+            IUmsUnsentMessageService unsentMessageService,
+            QuartzScheduleJobConfig jobConfig,
+            AuthConfig authConfig,
+            JobLockConfig lockConfig,
             IScheduleJobHttpService jobHttpService,
             ISysGlobalExceptionLogHttpService logHttpService)
+            : base(jobConfig, authConfig, lockConfig, jobHttpService, logHttpService)
         {
-            _config = config;
-            _mqManager = mqManager;
-            _repository = repository;
-            _jobHttpService = jobHttpService;
-            _logHttpService = logHttpService;
+            _unsentMessageService = unsentMessageService;
         }
 
-        public async Task Execute(IJobExecutionContext context)
+        /// <summary>
+        /// 执行任务
+        /// </summary>
+        protected override async Task ExecuteInternalAsync(IJobExecutionContext context)
         {
-            try
-            {
-                var effected = 0;
-                var data = await _repository.GetListExpiryANTAsync();
-                if (data.Any())
-                {
-                    foreach (var item in data)
-                    {
-                        var errType = await _mqManager.SendToRabbitMQAsync(item.QueueName, item.RouteKey, item.ToJson());
-
-                        if (errType == BaseErrType.Success)
-                            effected++;
-                    }
-                }
-                await _jobHttpService.LogAsync(_config.ClientCode, typeof(MonitorUnsentMessageJob).Name, $"监控当天未发送队列消息（超一小时）任务执行完成，共有{data.Count()}条记录重新发送，成功{effected}条");
-            }
-            catch (Exception ex)
-            {
-                await _logHttpService.AddAsync(new SysGlobalExceptionLogRequest
-                {
-                    ModuleName = _config.ClientName,
-                    ModuleCode = _config.ClientCode,
-                    Name = ex.Message,
-                    Content = ex.InnerException == null ? ex.StackTrace : ex.InnerException.StackTrace
-                });
-            }
+            var result = await _unsentMessageService.ResendExpiredAsync();
+            await AddLogAsync(result.Message);
         }
     }
 }

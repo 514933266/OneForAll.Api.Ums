@@ -1,31 +1,30 @@
 ﻿using Microsoft.Extensions.Hosting;
 using RabbitMQ.Client;
-using System.Threading.Tasks;
 using System.Threading;
-using Ums.Domain.Interfaces;
+using System.Threading.Tasks;
+using Ums.Application.Interfaces;
 
 namespace Ums.Host.Providers
 {
     /// <summary>
-    /// 企业微信消费者
+    /// rabbitmq企业微信消息消费托管
     /// </summary>
     public class WxqyMessageConsumerHostedService : IHostedService
     {
         private readonly IConnection _conn;
         private readonly IChannel _channel;
-        private readonly IWxqyMessageManager _manager;
-        public WxqyMessageConsumerHostedService(ConnectionFactory mqFactory, IWxqyMessageManager manager)
+        private readonly IUmsQueueConsumeService _consumeService;
+        public WxqyMessageConsumerHostedService(ConnectionFactory mqFactory, IUmsQueueConsumeService consumeService)
         {
-            _manager = manager;
+            _consumeService = consumeService;
             _conn = mqFactory.CreateConnectionAsync().Result;
             _channel = _conn.CreateChannelAsync().Result;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            // 暂时先用一个信道，后期量上来再拆分
-            await _manager.ReceiveTextAsync(_channel);
-            await _manager.ReceiveMarkdownAsync(_channel);
+            await _consumeService.ReceiveWxqyTextAsync(_channel);
+            await _consumeService.ReceiveWxqyMarkdownAsync(_channel);
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)
@@ -35,4 +34,3 @@ namespace Ums.Host.Providers
         }
     }
 }
-

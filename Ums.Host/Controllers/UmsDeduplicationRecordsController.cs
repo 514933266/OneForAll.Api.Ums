@@ -3,9 +3,8 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using OneForAll.Core;
+using Ums.Application.Interfaces;
 using Ums.Domain.Models;
-using Ums.Domain.Interfaces;
-using Ums.Domain.Repositorys;
 using Ums.Domain.Entities;
 using Ums.Domain.Enums;
 
@@ -18,15 +17,11 @@ namespace Ums.Host.Controllers
     [AllowAnonymous]
     public class UmsDeduplicationRecordsController : BaseController
     {
-        private readonly IUmsMessageDeduplicationManager _deduplicationManager;
-        private readonly IUmsDeduplicationRecordRepository _recordRepository;
+        private readonly IUmsDeduplicationRecordService _service;
 
-        public UmsDeduplicationRecordsController(
-            IUmsMessageDeduplicationManager deduplicationManager,
-            IUmsDeduplicationRecordRepository recordRepository)
+        public UmsDeduplicationRecordsController(IUmsDeduplicationRecordService service)
         {
-            _deduplicationManager = deduplicationManager;
-            _recordRepository = recordRepository;
+            _service = service;
         }
 
         /// <summary>
@@ -49,7 +44,7 @@ namespace Ums.Host.Controllers
             [FromQuery] string key = default,
             [FromQuery] UmsMessageTypeEnum? messageType = default)
         {
-            return await _recordRepository.GetPageAsync(pageIndex, pageSize, startTime, endTime, key, messageType);
+            return await _service.GetPageAsync(pageIndex, pageSize, startTime, endTime, key, messageType);
         }
 
         /// <summary>
@@ -60,55 +55,7 @@ namespace Ums.Host.Controllers
         [HttpPost]
         public async Task<BaseMessage> AddAsync([FromBody] UmsDeduplicationRecordForm form)
         {
-            var msg = new BaseMessage();
-
-            try
-            {
-                // 生成去重key
-                var messageKey = _deduplicationManager.GenerateHashKey(
-                    form.Title,
-                    form.Content,
-                    form.MessageType,
-                    form.MatchRule);
-
-                // 检查是否已存在
-                var existingRecord = await _recordRepository.GetByKeyAsync(messageKey);
-                if (existingRecord != null)
-                {
-                    msg.ErrType = BaseErrType.DataExist;
-                    return msg.Fail("该去重记录已存在");
-                }
-
-                // 创建新记录
-                var record = new UmsDeduplicationRecord
-                {
-                    Id = Guid.NewGuid(),
-                    MessageKey = messageKey,
-                    MessageType = form.MessageType,
-                    SendCount = 1,
-                    LastSendTime = DateTime.UtcNow,
-                    CreateTime = DateTime.UtcNow
-                };
-
-                var result = await _recordRepository.AddAsync(record);
-
-                if (result > 0)
-                {
-                    msg.ErrType = BaseErrType.Success;
-                    return msg.Success("添加成功");
-                }
-                else
-                {
-                    msg.ErrType = BaseErrType.DataError;
-                    return msg.Fail("添加失败");
-                }
-            }
-            catch (Exception ex)
-            {
-                msg.ErrType = BaseErrType.DataError;
-                msg.Message = ex.Message;
-                return msg.Fail($"添加失败: {ex.Message}");
-            }
+            return await _service.AddAsync(form);
         }
     }
 }

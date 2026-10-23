@@ -1,6 +1,8 @@
+using OneForAll.Core;
 using System;
 using System.Threading.Tasks;
 using Ums.Domain.Enums;
+using Ums.Domain.Models;
 
 namespace Ums.Domain.Interfaces
 {
@@ -27,5 +29,12 @@ namespace Ums.Domain.Interfaces
         /// <param name="matchRule">匹配规则</param>
         /// <returns>去重key</returns>
         string GenerateHashKey(string title, string content, UmsMessageTypeEnum messageType, DeduplicationMatchRuleEnum matchRule);
+
+        /// <summary>
+        /// 手动添加去重记录
+        /// </summary>
+        /// <param name="form">表单</param>
+        /// <returns>结果消息</returns>
+        Task<BaseMessage> AddRecordAsync(UmsDeduplicationRecordForm form);
     }
 }

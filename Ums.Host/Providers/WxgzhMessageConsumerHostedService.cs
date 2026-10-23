@@ -1,36 +1,30 @@
 ﻿using Microsoft.Extensions.Hosting;
 using RabbitMQ.Client;
-using System.Threading.Tasks;
 using System.Threading;
-using Ums.Domain.Interfaces;
+using System.Threading.Tasks;
+using Ums.Application.Interfaces;
 
 namespace Ums.Host.Providers
 {
     /// <summary>
-    /// 企业微信消费者
+    /// rabbitmq公众号消息消费托管
     /// </summary>
     public class WxgzhMessageConsumerHostedService : IHostedService
     {
         private readonly IConnection _conn;
         private readonly IChannel _channel;
-        private readonly IWxgzhMessageManager _manager;
-        private readonly IWxgzhSubscribeMessageManager _subscribeManager;
-        
-        public WxgzhMessageConsumerHostedService(
-            ConnectionFactory mqFactory, 
-            IWxgzhMessageManager manager,
-            IWxgzhSubscribeMessageManager subscribeManager)
+        private readonly IUmsQueueConsumeService _consumeService;
+        public WxgzhMessageConsumerHostedService(ConnectionFactory mqFactory, IUmsQueueConsumeService consumeService)
         {
-            _manager = manager;
-            _subscribeManager = subscribeManager;
+            _consumeService = consumeService;
             _conn = mqFactory.CreateConnectionAsync().Result;
             _channel = _conn.CreateChannelAsync().Result;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            await _manager.ReceiveTemplateAsync(_channel);
-            await _subscribeManager.ReceiveSubscribeAsync(_channel);
+            await _consumeService.ReceiveWxgzhTemplateAsync(_channel);
+            await _consumeService.ReceiveWxgzhSubscribeAsync(_channel);
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)
@@ -40,4 +34,3 @@ namespace Ums.Host.Providers
         }
     }
 }
-

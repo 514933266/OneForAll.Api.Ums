@@ -18,13 +18,13 @@ namespace Ums.Application
     public class UmsSmsRecordService : IUmsSmsRecordService
     {
         private readonly IMapper _mapper;
-        private readonly IUmsSmsRecordManager _manager;
+        private readonly IUmsSmsRecordQueryService _queryService;
         public UmsSmsRecordService(
             IMapper mapper,
-            IUmsSmsRecordManager manager)
+            IUmsSmsRecordQueryService queryService)
         {
             _mapper = mapper;
-            _manager = manager;
+            _queryService = queryService;
         }
 
         /// <summary>
@@ -43,7 +43,7 @@ namespace Ums.Application
             DateTime? endTime,
             string platformName)
         {
-            var data = await _manager.GetPgaeAsync(pageIndex, pageSize, startTime, endTime, platformName);
+            var data = await _queryService.GetPgaeAsync(pageIndex, pageSize, startTime, endTime, platformName);
             var items = _mapper.Map<IEnumerable<UmsSmsRecord>, IEnumerable<UmsSmsRecordDto>>(data.Items);
             return new PageList<UmsSmsRecordDto>(data.Total, data.PageIndex, data.PageSize, items);
         }

@@ -18,13 +18,13 @@ namespace Ums.Application
     public class UmsMessageLogService : IUmsMessageLogService
     {
         private readonly IMapper _mapper;
-        private readonly IUmsMessageRecordManager _manager;
+        private readonly IUmsMessageRecordQueryService _queryService;
         public UmsMessageLogService(
             IMapper mapper,
-            IUmsMessageRecordManager manager)
+            IUmsMessageRecordQueryService queryService)
         {
             _mapper = mapper;
-            _manager = manager;
+            _queryService = queryService;
         }
 
         /// <summary>
@@ -47,7 +47,7 @@ namespace Ums.Application
             string queueName,
             string routeKey)
         {
-            var data = await _manager.GetPgaeAsync(pageIndex, pageSize, startTime, endTime, exChangeName, queueName, routeKey);
+            var data = await _queryService.GetPgaeAsync(pageIndex, pageSize, startTime, endTime, exChangeName, queueName, routeKey);
             var items = _mapper.Map<IEnumerable<UmsMessageRecord>, IEnumerable<UmsMessageRecordDto>>(data.Items);
             return new PageList<UmsMessageRecordDto>(data.Total, data.PageIndex, data.PageSize, items);
         }

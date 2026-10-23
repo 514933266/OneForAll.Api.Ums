@@ -18,13 +18,16 @@ namespace Ums.Application
     {
         private readonly IMapper _mapper;
         private readonly IUmsNotificationConfigManager _manager;
+        private readonly IUmsNotificationConfigQueryService _queryService;
 
         public UmsNotificationConfigService(
             IMapper mapper,
-            IUmsNotificationConfigManager manager)
+            IUmsNotificationConfigManager manager,
+            IUmsNotificationConfigQueryService queryService)
         {
             _mapper = mapper;
             _manager = manager;
+            _queryService = queryService;
         }
 
         /// <summary>
@@ -36,7 +39,7 @@ namespace Ums.Application
         /// <returns>分页列表</returns>
         public async Task<PageList<UmsNotificationConfigDto>> GetPageAsync(int pageIndex, int pageSize, string clientId)
         {
-            var data = await _manager.GetPageAsync(pageIndex, pageSize, clientId);
+            var data = await _queryService.GetPageAsync(pageIndex, pageSize, clientId);
             var items = _mapper.Map<IEnumerable<UmsNotificationConfig>, IEnumerable<UmsNotificationConfigDto>>(data.Items);
             return new PageList<UmsNotificationConfigDto>(data.Total, data.PageIndex, data.PageSize, items);
         }
